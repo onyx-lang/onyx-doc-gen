@@ -1,0 +1,5 @@
+bin/
+lib/
+doc.html
+doc.odoc
+onyx-lsp.ini
