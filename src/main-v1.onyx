@@ -50,8 +50,8 @@ write_docs :: (docs: &doc.Doc, w: &io.Writer) {
             }
 
             body {
-                background-color: #070707;
-                color: #ffffff;
+                /*background-color: #070707;
+                color: #ffffff;*/
             }
 
             a {
@@ -65,9 +65,12 @@ write_docs :: (docs: &doc.Doc, w: &io.Writer) {
             }
 
             pre > code {
+                color: #ffffff;
                 background-color: #111;
                 border: 1px solid #222222;
-                
+            }
+
+            pre {
                 margin: 4px 0;
             }
         </style>
@@ -114,20 +117,37 @@ output_package_list :: (w: &io.Writer, docs: &doc.Doc, p: &doc.Doc_Package) {
         io.write_format(w, "<h3>{}</h3>", it.name);
         io.write_format(w, "<p>{}:{}</p>", docs.files[it.location.file_id].name, it.location.line);
 
-        io.write(w, "<pre><code>");
-        io.write(w, "{} :: (", it.name);
+        if it.flags & .Is_Overloaded {
+            for& p: it.overloads {
+                p.name = it.name;
+                output_procedure_definition(w, p);
+            }
 
-        for& param: it.params {
-            if !#first do io.write(w, ", ");
-            io.write(w, "{}: {}", param.name, param.type);
+        } else {
+            output_procedure_definition(w, it);
         }
-
-        io.write(w, ") -> {}", it.return_type);
-        io.write(w, "</code></pre>");
 
         io.write(w, "</div>");
     }
 
     io.write(w, "</div>");
     io.write(w, "</div>");
+}
+
+output_procedure_definition :: (w: &io.Writer, p: &doc.Doc_Procedure) {
+    io.write(w, "<pre><code>");
+    io.write(w, "{} :: {}(", p.name, "macro " if p.flags&.Is_Macro else "");
+
+    for& param: p.params {
+        if !#first do io.write(w, ", ");
+
+        io.write(w, param.name);
+
+        if param.type {
+            io.write(w, ": {}", param.type);
+        }
+    }
+
+    io.write(w, ") -> {}", p.return_type);
+    io.write(w, "</code></pre>");
 }
