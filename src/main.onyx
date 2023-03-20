@@ -1,0 +1,241 @@
+use core
+use core.encoding {osad}
+
+generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
+    tprintf("https://github.com/onyx-lang/onyx/tree/master{}#L{}",
+        string.advance(docs.files[s.file_id].name, "/usr/share/onyx".count),
+        s.line);
+
+main :: (args: [] cstr) {
+    if args.length == 0 {
+        eprintf("""Usage:
+    onyx-doc-gen <file.odoc> [output_folder=generated]\n""");
+        os.exit(1);
+    }
+    
+    odoc_file := string.as_str(args[0]);
+    contents  := os.get_contents(odoc_file);
+    if !contents {
+        eprintf("""Failed to read contents of '{}'.\n""", odoc_file);
+        os.exit(1);
+    }
+
+    destination_folder := "generated";
+    if args.length == 2 {
+        destination_folder = string.as_str(args[1]);
+    }
+
+    maybe_docs := osad.deserialize(doc.Doc, contents);
+    if !maybe_docs {
+        eprintf("Failed to parse documentation file.\n");
+        return;
+    }
+
+    docs := maybe_docs->unwrap();
+
+    generate_docs(&docs, destination_folder);
+}
+
+//
+// Folder structure
+//
+// /
+//     index.html
+//     static/
+//         style.css
+//         script.js
+//     packages/
+//         core.html
+//         core/
+//             array.html
+//             map.html
+//             ...
+//         runtime.html
+//         runtime/
+//             info.html
+//             platform.html
+//
+
+
+
+
+generate_docs :: (docs: &doc.Doc, destination_folder: str) {
+    if os.dir_exists(destination_folder) {
+        log(.Info, tprintf("Removing old '{}' directory.", destination_folder));
+        os.remove_directory(destination_folder);
+    }
+
+    log(.Info, tprintf("Creating '{}'.", destination_folder));
+    os.dir_create(destination_folder);
+
+    generate_static_folder(destination_folder);
+
+    package_sidebar := build_package_tree_sidebar(docs);
+
+    package_folder := tprintf("{}/packages", destination_folder);
+    log(.Info, tprintf("Creating '{}'.", package_folder));
+    os.dir_create(package_folder);
+
+    for& p: docs.packages {
+        p_html := generate_package_html_file(docs, p, package_sidebar);
+
+        for os.with_file(tprintf("{}/{}.html", package_folder, p.qualified_name), .Write) {
+            io.stream_write(it, p_html);
+            log(.Info, tprintf("Created '{}.html'", p.qualified_name));
+        }
+    }
+}
+
+generate_static_folder :: (destination_folder: str) {
+    static_folder := tprintf("{}/static", destination_folder);
+    os.dir_create(static_folder);
+
+    for os.with_file(tprintf("{}/style.css", static_folder), .Write) {
+        io.stream_write(it, CSS_File);
+    }
+
+    for os.with_file(tprintf("{}/logo_256.png", static_folder), .Write) {
+        io.stream_write(it, #file_contents "./parts/logo_256.png");
+    }
+
+    for os.with_file(tprintf("{}/highlight.min.css", static_folder), .Write) {
+        io.stream_write(it, #file_contents "./parts/highlight.min.css");
+    }
+
+    for os.with_file(tprintf("{}/highlight.min.js", static_folder), .Write) {
+        io.stream_write(it, #file_contents "./parts/highlight.min.js");
+    }
+}
+
+generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, sidebar: str) -> str {
+    output: dyn_str;
+    conv.format(&output, """
+<html>
+    <head>
+        <title>Package {}</title>
+
+        <link rel="stylesheet" href="/static/highlight.min.css" />
+        <link rel="stylesheet" href="/static/style.css" />
+        <script src="/static/highlight.min.js"></script>
+    </head>
+
+    <body>
+""", p.qualified_name);
+
+    string.append(&output, #file_contents "./parts/navbar.html");
+
+    string.append(&output, "<main>");
+    string.append(&output, sidebar);
+
+    string.append(&output, "<div class=\"main-view\">");
+
+    conv.format(&output, "<h1>Package {}</h1>", p.qualified_name);
+
+    procs := iter.as_iter(docs.procedures, by_pointer=true)
+        ->filter(p, (it, p) => cast(u32, it.package_id) == ~~p.id)
+        |> iter.to_array();
+
+    array.sort(procs, (x, y) => string.compare(x.name, y.name));
+
+    for procs {
+        conv.format(&output, "<div id=\"{}\" class=\"package-entry\">", it.name);
+        string.append(&output, "<div class=\"entry-header\">");
+        conv.format(&output, "<div class=\"entry-name\">{}</div>", it.name);
+        conv.format(&output, "<div class=\"entry-source\"><a href=\"{}\">source</a></div>", generate_link_from_source(it.location, docs));
+        string.append(&output, "</div>");
+
+        if it.flags & .Is_Overloaded {
+            for& p: it.overloads {
+                p.name = it.name;
+                output_procedure_definition(docs, p, &output);
+            }
+
+        } else {
+            output_procedure_definition(docs, it, &output);
+        }
+
+        string.append(&output, "</div>");
+    }
+
+    string.append(&output, "</div>");
+
+    string.append(&output, "<div class=\"symbol-sidebar\"><h1>Symbols</h1></div>");
+    string.append(&output, "</main>");
+
+    string.append(&output, """
+<script>
+    window.addEventListener("load", () => hljs.highlightAll());
+</script>
+
+</body>
+</html>
+""");
+    return output;
+}
+
+output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn_str) {
+    conv.format(out, "<a href=\"{}\"><pre class=\"hljs language-onyx\"><code>",
+        generate_link_from_source(p.location, docs));
+
+    conv.format(out, "{} :: {}(",
+        p.name,
+        "macro " if p.flags&.Is_Macro else "");
+
+    for& param: p.params {
+        if !#first do string.append(out, ", ");
+
+        string.append(out, param.name);
+
+        if param.type {
+            conv.format(out, ": {}", param.type);
+        }
+    }
+
+    conv.format(out, ") -> {}", p.return_type);
+    string.append(out, "</code></pre></a>");
+}
+
+build_navbar :: (docs: &doc.Doc) -> str {
+    return #file_contents "./parts/navbar.html";
+}
+
+build_package_tree_sidebar :: (docs: &doc.Doc) -> str {
+    log(.Info, "Generating package sidebar.");
+
+    output: dyn_str;
+    string.append(&output, "<div class=\"package-sidebar\">");
+
+    string.append(&output, "<h1>Package Tree</h1>");
+    
+    for& p: docs.packages {
+        if cast(i32, p.parent) == -1 {
+            // This is a top-level package
+            recurse(docs, &output, p);
+        }
+    }
+
+    string.append(&output, "</div>");
+
+    return output;
+
+    recurse :: (docs: &doc.Doc, dest: &dyn_str, p: &doc.Doc_Package) {
+        conv.format(dest,
+            "<a href=\"/packages/{}.html\"><div class=\"item\">{}</div></a>",
+            p.qualified_name,
+            p.name);
+
+        if p.subpackages {
+            string.append(dest, "<div class=\"container\">");
+            for p.subpackages {
+                recurse(docs, dest, &docs.packages[~~it]);
+            }
+            string.append(dest, "</div>");
+        }
+    }
+}
+
+
+
+
+CSS_File :: #file_contents "./parts/style.css"
+
