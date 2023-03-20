@@ -1,0 +1,26 @@
+Differentiate between public/package/local symbols
+    Maybe hide local symbols all together?
+
+Configurable options:
+    - Destination folder
+    - Which packages to include
+    - How to map source location to online viewable source code
+    - If source code should be viewable at all
+
+Search bar should work
+
+Index page with Readme file?
+
+Markdown parsing in documentation notes, and readme file?
+
+Mark active package selection
+    Probably need to regenerate the package hierarchy per page
+
+Add documentation for:
+    structures
+    enums
+    `#distinct`
+    interfaces   <- This will be hard
+    type aliases
+    operator overloads
+

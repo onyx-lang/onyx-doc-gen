@@ -6,7 +6,7 @@
     font-family: sans-serif;
 }
 
-:root {
+html.dark-mode {
     --navbar-background: #111116;
     --navbar-color: #ffffff;
     --navbar-height: 42px;
@@ -20,6 +20,20 @@
     --main-separator-color: #444444;
 }
 
+html.light-mode {
+    --navbar-background: #eeeef5;
+    --navbar-color: #000000;
+    --navbar-height: 42px;
+    --navbar-search-background: #9999aa;
+    --navbar-search-color: #000000;
+    --navbar-search-hover-background: #bbbbc4;
+
+    --main-background: #ffffff;
+    --main-color: #000000;
+    --main-top-padding: 14;
+    --main-separator-color: #dddddd;
+}
+
 body {
     background-color: var(--main-background);
     color: var(--main-color);
@@ -29,7 +43,7 @@ navbar {
     min-height: var(--navbar-height);
     position: relative;
     display: grid;
-    grid-template-columns: 50px 1fr 50px;
+    grid-template-columns: 50px 1fr 100px;
     grid-template-rows: auto;
     grid-template-areas: "logo searchbar links";
 
@@ -39,6 +53,19 @@ navbar {
     z-index: 100;
     box-shadow: 0px -2px 4px 4px black;
 
+}
+
+navbar .toggle-colors {
+    height: 100%;
+    margin-right: 20px;
+    text-align: center;
+    padding-top: 10px;
+    outline: none;
+    user-select: none;
+}
+
+navbar .toggle-colors:hover {
+    cursor: pointer;
 }
 
 navbar .logo {
@@ -199,10 +226,61 @@ main .main-view pre * {
     font-family: "Courier New";
 }
 
+main .main-view .source-definition {
+    position: relative;
+}
+
+main .main-view .source-definition .source-link {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 1rem;
+
+    opacity: 0;
+    transition: opacity 100ms;
+    background-color: var(--navbar-search-background);
+    color: black;
+
+    padding: 4px;
+    border-radius: 4px;
+}
+
+main .main-view .source-definition:hover .source-link {
+    opacity: 100%;
+}
+
+main .main-view .source-definition .source-link a {
+    color: black;
+    text-decoration: none;
+}
+
 main .symbol-sidebar {
     grid-area: "symbols";
     background-color: var(--navbar-background);
     border-left: 2px solid var(--main-separator-color);
+    text-decoration: none;
+}
+
+main .symbol-sidebar a {
+    text-decoration: none;
+    color: var(--navbar-search-background);
+}
+
+main .symbol-sidebar a * {
+    text-decoration: none;
+}
+
+main .symbol-sidebar a:visited .symbol-link {
+    text-decoration: none;
+    color: var(--navbar-search-background);
+}
+
+main .symbol-sidebar a .symbol-link {
+    /* transition: all 400ms; */
+}
+
+main .symbol-sidebar a:hover .symbol-link {
+    background-color: var(--main-separator-color);
 }
 
 
