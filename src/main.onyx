@@ -226,14 +226,10 @@ build_package_tree_sidebar :: (docs: &doc.Doc) -> str {
 
     string.append(&output, "<h1>Package Tree</h1>");
     
-    context->set_user_data(docs);
     tlp := iter.as_iter(docs.packages, by_pointer=true)
             |> iter.filter(x => cast(i32, x.parent) == -1)
             |> iter.to_array()
-            |> array.sort((x, y) => {
-                docs := context->get_user_data(doc.Doc);
-                return string.compare(docs.packages[~~x.id].name, docs.packages[~~y.id].name);
-            });
+            |> array.sort((x, y) => string.compare(x.name, y.name));
     defer delete(&tlp);
 
     for p: tlp {

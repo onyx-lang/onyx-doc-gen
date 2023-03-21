@@ -200,8 +200,6 @@ indent_markdown_deindent :: (s_: str) -> Iterator(str) {
     return string.split_iter(s, "\n")
         ->map(whitespace_count, (x, c) => {
             if x.length < c do return "";
-            tmp := string.advance(x, c);
-            core.println(tmp);
-            return tmp;
+            return string.advance(x, c);
         });
 }

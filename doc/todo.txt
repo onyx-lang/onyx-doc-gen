@@ -13,6 +13,10 @@ Markdown parsing in documentation notes, and readme file?
 Mark active package selection
     Probably need to regenerate the package hierarchy per page
 
+Add ability for description at the package level
+    `#package_doc`?
+    `#doc "..." package foo`?
+
 Add documentation for:
     structures
     enums
