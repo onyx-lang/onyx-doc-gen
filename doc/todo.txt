@@ -1,6 +1,3 @@
-Differentiate between public/package/local symbols
-    Maybe hide local symbols all together?
-
 Configurable options:
     - Destination folder
     - Which packages to include

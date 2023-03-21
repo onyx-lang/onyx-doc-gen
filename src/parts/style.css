@@ -194,18 +194,29 @@ main .main-view .package-entry .entry-header {
     justify-content: space-between;
 }
 
+main .main-view .package-entry .entry-header .visibility-badge {
+    color: var(--main-background);
+    background-color: var(--main-color);
+    border-radius: 4px;
+    padding: 4px;
+    margin-right: 4px;
+    text-transform: lowercase;
+}
+
+main .main-view .package-entry .entry-header .entry-source {
+    background-color: var(--navbar-search-background);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+main .main-view .package-entry .entry-header .entry-source a {
+    color: var(--navbar-search-color);
+}
+
 main .main-view .entry-name {
     font-family: monospace;
     font-weight: 700;
     font-size: 1.2rem;
-}
-
-main .main-view .package-entry .entry-header a {
-    color: var(--navbar-search-background);
-}
-
-main .main-view .package-entry .entry-header a:visited {
-    color: var(--navbar-search-background);
 }
 
 main .main-view pre {

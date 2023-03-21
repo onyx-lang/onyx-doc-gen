@@ -114,16 +114,30 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, sidebar: str
     conv.format(&output, "<h1>Package {}</h1>", p.qualified_name);
 
     procs := iter.as_iter(docs.procedures, by_pointer=true)
+        |> iter.filter(x => x.visibility != .Local)
         |> iter.filter(p, (it, p) => cast(u32, it.package_id) == ~~p.id)
         |> iter.to_array();
 
-    array.sort(procs, (x, y) => string.compare(x.name, y.name));
+    array.sort(procs, (x, y) => {
+        if x.visibility != y.visibility {
+            return cast(i32, x.visibility) - cast(i32, y.visibility);
+        }
+
+        return string.compare(x.name, y.name);
+    });
 
     for procs {
         conv.format(&output, "<div id=\"{}\" class=\"package-entry\">", it.name);
         string.append(&output, "<div class=\"entry-header\">");
-        conv.format(&output, "<div class=\"entry-name\">{}</div>", it.name);
-        conv.format(&output, "<div class=\"entry-source\"><a href=\"{}\">source</a></div>", generate_link_from_source(it.location, docs));
+
+        string.append(&output, "<div>");
+        if it.visibility != .Public {
+            conv.format(&output, "<span class=\"visibility-badge\">#{}</span>", it.visibility);
+        }
+        conv.format(&output, "<span class=\"entry-name\">{}</span>", it.name);
+        string.append(&output, "</div>");
+
+        conv.format(&output, "<span class=\"entry-source\"><a href=\"{}\">source</a></span>", generate_link_from_source(it.location, docs));
         string.append(&output, "</div>");
 
         conv.format(&output, "<p>{}</p>", it.notes if it.notes else "<i>No documentation provided.</i>");
