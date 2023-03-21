@@ -49,14 +49,12 @@ generate_docs :: (docs: &doc.Doc, destination_folder: str) {
 
     generate_static_folder(destination_folder);
 
-    package_sidebar := build_package_tree_sidebar(docs);
-
     package_folder := tprintf("{}/packages", destination_folder);
     log(.Info, tprintf("Creating '{}'.", package_folder));
     os.dir_create(package_folder);
 
     for& p: docs.packages {
-        p_html := generate_package_html_file(docs, p, package_sidebar);
+        p_html := generate_package_html_file(docs, p);
 
         for os.with_file(tprintf("{}/{}.html", package_folder, p.qualified_name), .Write) {
             io.stream_write(it, p_html);
@@ -90,7 +88,7 @@ generate_static_folder :: (destination_folder: str) {
     }
 }
 
-generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, sidebar: str) -> str {
+generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
     output: dyn_str;
     conv.format(&output, """
 <html class="dark-mode">
@@ -109,7 +107,13 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, sidebar: str
     string.append(&output, #file_contents "./parts/navbar.html");
 
     string.append(&output, "<main>");
-    string.append(&output, sidebar);
+
+    {
+        sidebar := build_package_tree_sidebar(docs, p.id);
+        defer delete(&sidebar);
+
+        string.append(&output, sidebar);
+    }
 
     string.append(&output, "<div class=\"main-view\">");
 
@@ -218,7 +222,7 @@ build_navbar :: (docs: &doc.Doc) -> str {
     return #file_contents "./parts/navbar.html";
 }
 
-build_package_tree_sidebar :: (docs: &doc.Doc) -> str {
+build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.Id) -> str {
     log(.Info, "Generating package sidebar.");
 
     output: dyn_str;
@@ -233,17 +237,18 @@ build_package_tree_sidebar :: (docs: &doc.Doc) -> str {
     defer delete(&tlp);
 
     for p: tlp {
-        recurse(docs, &output, p);
+        recurse(docs, &output, p, active_package);
     }
 
     string.append(&output, "</div>");
 
     return output;
 
-    recurse :: (docs: &doc.Doc, dest: &dyn_str, p: &doc.Doc_Package) {
+    recurse :: (docs: &doc.Doc, dest: &dyn_str, p: &doc.Doc_Package, active_package: doc.Doc_Package.Id) {
         conv.format(dest,
-            "<a href=\"/packages/{}.html\"><div class=\"item\">{}</div></a>",
+            "<a href=\"/packages/{}.html\"><div class=\"item {}\">{}</div></a>",
             p.qualified_name,
+            "active" if cast(u32, active_package) == ~~p.id else "",
             p.name);
 
         if p.subpackages {
@@ -256,7 +261,7 @@ build_package_tree_sidebar :: (docs: &doc.Doc) -> str {
             });
 
             for p.subpackages {
-                recurse(docs, dest, &docs.packages[~~it]);
+                recurse(docs, dest, &docs.packages[~~it], active_package);
             }
             string.append(dest, "</div>");
         }
