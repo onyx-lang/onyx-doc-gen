@@ -1,6 +1,8 @@
 use core
 use core.encoding {osad}
 
+#load "./markdown"
+
 generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
     tprintf("https://github.com/onyx-lang/onyx/tree/master{}#L{}",
         string.advance(docs.files[s.file_id].name, "/usr/share/onyx".count),
@@ -140,8 +142,6 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, sidebar: str
         conv.format(&output, "<span class=\"entry-source\"><a href=\"{}\">source</a></span>", generate_link_from_source(it.location, docs));
         string.append(&output, "</div>");
 
-        conv.format(&output, "<p>{}</p>", it.notes if it.notes else "<i>No documentation provided.</i>");
-
         if it.flags & .Is_Overloaded {
             for& p: it.overloads {
                 p.name = it.name;
@@ -151,6 +151,19 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, sidebar: str
         } else {
             output_procedure_definition(docs, it, &output);
         }
+
+        
+        string.append(&output, "<div class=\"description-container\">");
+        if !it.notes {
+            string.append(&output, "<i>No documentation provided.</i>");
+        } else {
+            generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(it.notes));
+            defer delete(&generated_markup);
+
+            string.append(&output, generated_markup);
+        }
+
+        string.append(&output, "</div>");
 
         string.append(&output, "</div>");
     }
@@ -214,7 +227,7 @@ build_package_tree_sidebar :: (docs: &doc.Doc) -> str {
     string.append(&output, "<h1>Package Tree</h1>");
     
     context->set_user_data(docs);
-    tlp := iter.as_iter(docs.packages)
+    tlp := iter.as_iter(docs.packages, by_pointer=true)
             |> iter.filter(x => cast(i32, x.parent) == -1)
             |> iter.to_array()
             |> array.sort((x, y) => {

@@ -1,0 +1,207 @@
+// Maybe make this a separate packages later?
+package markdown
+
+use core {string, iter, conv, array}
+
+translate_to_html :: #match #local {}
+
+#overload
+translate_to_html :: (s: str, allocator := context.allocator) -> str {
+    return translate_to_html(string.split_iter(s, "\n"));
+}
+
+#overload
+translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> str {
+    output := make(dyn_str, allocator);
+
+    state := Translator_State.{
+        state = .Base
+    };
+
+    for line: lines {
+        // Check for heading.
+        if string.starts_with(line, "#") {
+            flush_state_to_base(&state, &output);
+            hashes := iter.as_iter(line)->take_while(x => x == '#')->count(x => true);
+
+            line = string.advance(line, hashes) |> string.strip_leading_whitespace();
+
+            conv.format(&output, "<h{}>{}</h{}>", hashes, line, hashes);
+            continue;
+        }
+
+        // Empty lines clear formatting
+        if string.empty(line) {
+            flush_state_to_base(&state, &output);
+            continue;
+        }
+
+        // Check for starting a preformatted block.
+        if string.starts_with(line, "    ") || string.starts_with(line, "\t") {
+            set_translator_state(&state, &output, .Inside_Preformatted_Block);
+
+            if line[0] == '\t' {
+                line = string.advance(line, 1);
+            } else {
+                line = string.advance(line, 4);
+            }
+
+            conv.format(&output, "{}\n", line);
+            continue;
+        }
+
+        set_translator_state(&state, &output, .Inside_Paragraph);
+
+        // TODO: Process the line
+        line = string.strip_whitespace(line);
+        string.append(&output, " ");
+        string.append(&output, line);
+        // process_single_line(line, &output);
+    }
+
+    flush_state_to_base(&state, &output);
+    return output;
+}
+
+#local
+process_single_line :: (line: str, output: &dyn_str) {
+    Line_State :: enum { Normal; Bold; Italics; Bold_Italics; Code; }
+    state: Line_State;
+
+    // HACK
+    line.count += 2;
+
+    for array.windows(line, 3) {
+        next_state := state;
+
+        switch it[0] {
+            case '*' {
+                if     it == "***"      do next_state = .Bold_Italics;
+                elseif it[0..2] == "**" do next_state = .Bold;
+                elseif it[0..1] == "*"  do next_state = .Italics;
+            }
+
+            case '`' {
+                next_state = .Code;
+            }
+
+            case #default {
+                string.append(output, it[0]);
+                continue;
+            }
+        }
+
+        if next_state != state {
+            switch state {
+                case .Bold do string.append(output, "</strong>");
+                case .Italics do string.append(output, "</em>");
+                case .Bold_Italics do string.append(output, "</em></strong>");
+                case .Code do string.append(output, "</code>");
+            }
+
+            switch next_state {
+                case .Bold do string.append(output, "<strong>");
+                case .Italics do string.append(output, "<em>");
+                case .Bold_Italics do string.append(output, "<strong><em>");
+                case .Code do string.append(output, "<code>");
+            }
+
+            state = next_state;
+        }
+    }
+}
+
+#local
+Translator_State :: struct {
+    // State to track between lines
+    state: State;
+    State :: enum {
+        Base;
+        Inside_Paragraph;
+        Inside_Preformatted_Block;
+        Inside_Numeric_List;
+        Inside_Bullet_List;
+    }
+}
+
+#local
+flush_state_to_base :: (state: &Translator_State, out: &dyn_str) {
+    switch state.state {
+        case .Inside_Paragraph {
+            string.append(out, "</p>");
+        }
+
+        case .Inside_Preformatted_Block {
+            string.append(out, "</code></pre>");
+        }
+
+        case .Inside_Numeric_List {
+            string.append(out, "</ol>");
+        }
+
+        case .Inside_Bullet_List {
+            string.append(out, "</ul>");
+        }
+    }
+
+    state.state = .Base;
+}
+
+#local
+set_translator_state :: (state: &Translator_State, out: &dyn_str, s: Translator_State.State) {
+    if state.state == s do return;
+    
+    flush_state_to_base(state, out);
+
+    switch s {
+        case .Inside_Paragraph {
+            string.append(out, "<p>");
+        }
+
+        case .Inside_Preformatted_Block {
+            // :Config
+            string.append(out, "<pre class=\"hljs language-onyx\"><code>");
+        }
+
+        case .Inside_Numeric_List {
+            string.append(out, "<ol>");
+        }
+
+        case .Inside_Bullet_List {
+            string.append(out, "<ul>");
+        }
+    }
+
+    state.state = s;
+}
+
+
+
+
+indent_markdown_deindent :: (s_: str) -> Iterator(str) {
+    s := s_;
+    whitespace_count := 0;
+    for c: s_ {
+        if c == '\t' {
+            whitespace_count += 1;
+        }
+        elseif c == ' ' {
+            whitespace_count += 1;
+        }
+        elseif c == '\n' {
+            s = string.advance(s, whitespace_count + 1);
+            whitespace_count = 0;
+        }
+        else {
+            break;
+        }
+    }
+
+    return string.split_iter(s, "\n")
+        ->map(whitespace_count, (x, c) => {
+            if x.length < c do return "";
+            tmp := string.advance(x, c);
+            core.println(tmp);
+            return tmp;
+        });
+}

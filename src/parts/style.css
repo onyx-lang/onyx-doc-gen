@@ -213,6 +213,14 @@ main .main-view .package-entry .entry-header .entry-source a {
     color: var(--navbar-search-color);
 }
 
+main .main-view .package-entry .description-container {
+    margin-top: 10px;
+}
+
+main .main-view .package-entry .description-container p {
+    margin-top: 10px;
+}
+
 main .main-view .entry-name {
     font-family: monospace;
     font-weight: 700;
