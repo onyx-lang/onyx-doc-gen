@@ -250,7 +250,19 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
     string.append(out, "<div class=\"source-definition\">");
     conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
 
-    conv.format(out, "{} :: struct {\n", s.name);
+    conv.format(out, "{} :: struct", s.name);
+
+    if s.polymorph_arguments {
+        string.append(out, " (");
+        for& p: s.polymorph_arguments {
+            if !#first do string.append(out, ", ");
+
+            conv.format(out, "{}: {}", p.name, p.type);
+        }
+        string.append(out, ")");
+    }
+
+    string.append(out, " {\n");
 
     for& member: s.members {
         string.append(out, "    ");
