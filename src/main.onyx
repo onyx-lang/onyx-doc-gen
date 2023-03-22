@@ -119,32 +119,21 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
 
     conv.format(&output, "<h1>Package {}</h1>", p.qualified_name);
 
-    procs := iter.as_iter(docs.procedures, by_pointer=true)
-        |> iter.filter(x => x.visibility != .Local)
-        |> iter.filter(p, (it, p) => cast(u32, it.package_id) == ~~p.id)
-        |> iter.to_array();
 
-    array.sort(procs, (x, y) => {
-        if x.visibility != y.visibility {
-            return cast(i32, x.visibility) - cast(i32, y.visibility);
-        }
+    structs := filter_and_sort(docs.structures, p);
+    for structs {
+        output_entity_header(docs, it, &output);
 
-        return string.compare(x.name, y.name);
-    });
+        output_struct_definition(docs, it, &output);
 
+        output_entity_description(it, &output);
+        
+        string.append(&output, "</div>");
+    }
+
+    procs := filter_and_sort(docs.procedures, p);
     for procs {
-        conv.format(&output, "<div id=\"{}\" class=\"package-entry\">", it.name);
-        string.append(&output, "<div class=\"entry-header\">");
-
-        string.append(&output, "<div>");
-        if it.visibility != .Public {
-            conv.format(&output, "<span class=\"visibility-badge\">#{}</span>", it.visibility);
-        }
-        conv.format(&output, "<span class=\"entry-name\">{}</span>", it.name);
-        string.append(&output, "</div>");
-
-        conv.format(&output, "<span class=\"entry-source\"><a href=\"{}\">source</a></span>", generate_link_from_source(it.location, docs));
-        string.append(&output, "</div>");
+        output_entity_header(docs, it, &output);
 
         if it.flags & .Is_Overloaded {
             for& p: it.overloads {
@@ -156,25 +145,18 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
             output_procedure_definition(docs, it, &output);
         }
 
-        
-        string.append(&output, "<div class=\"description-container\">");
-        if !it.notes {
-            string.append(&output, "<i>No documentation provided.</i>");
-        } else {
-            generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(it.notes));
-            defer delete(&generated_markup);
-
-            string.append(&output, generated_markup);
-        }
-
-        string.append(&output, "</div>");
+        output_entity_description(it, &output);
 
         string.append(&output, "</div>");
     }
 
     string.append(&output, "</div>");
 
-    build_symbol_sidebar(iter.as_iter(procs)->map(x => x.name), &output);
+    build_symbol_sidebar(
+        iter.concat(
+            iter.as_iter(structs)->map(x => x.name),
+            iter.as_iter(procs)->map(x => x.name)),
+        &output);
 
     string.append(&output, "</main>");
 
@@ -187,6 +169,52 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
 </html>
 """);
     return output;
+}
+
+filter_and_sort :: (arr: [] $T, p: &doc.Doc_Package) -> [] &T {
+    output := iter.as_iter(arr, by_pointer=true)
+        |> iter.filter(x => x.visibility != .Local)
+        |> iter.filter(p, (it, p) => cast(u32, it.package_id) == ~~p.id)
+        |> iter.to_array();
+
+    array.sort(output, (x, y) => {
+        if x.visibility != y.visibility {
+            return cast(i32, x.visibility) - cast(i32, y.visibility);
+        }
+
+        return string.compare(x.name, y.name);
+    });
+
+    return output;
+}
+
+output_entity_header :: (docs: &doc.Doc, ent: &doc.Doc_Entity, output: &dyn_str) {
+    conv.format(output, "<div id=\"{}\" class=\"package-entry\">", ent.name);
+    string.append(output, "<div class=\"entry-header\">");
+
+    string.append(output, "<div>");
+    if ent.visibility != .Public {
+        conv.format(output, "<span class=\"visibility-badge\">#{}</span>", ent.visibility);
+    }
+    conv.format(output, "<span class=\"entry-name\">{}</span>", ent.name);
+    string.append(output, "</div>");
+
+    conv.format(output, "<span class=\"entry-source\"><a href=\"{}\">source</a></span>", generate_link_from_source(ent.location, docs));
+    string.append(output, "</div>");
+}
+
+output_entity_description :: (ent: &doc.Doc_Entity, output: &dyn_str) {
+    string.append(output, "<div class=\"description-container\">");
+    if !ent.notes {
+        string.append(output, "<i>No documentation provided.</i>");
+    } else {
+        generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(ent.notes));
+        defer delete(&generated_markup);
+
+        string.append(output, generated_markup);
+    }
+
+    string.append(output, "</div>");
 }
 
 output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn_str) {
@@ -211,6 +239,34 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
     string.append(out, "</code></pre>");
 
     source_destination := generate_link_from_source(p.location, docs);
+    string.append(out, "<div class=\"source-link\">");
+    conv.format(out, "<a href=\"{}\">source</a>", source_destination);
+    string.append(out, "</div>");
+
+    string.append(out, "</div>");
+}
+
+output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_str) {
+    string.append(out, "<div class=\"source-definition\">");
+    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
+
+    conv.format(out, "{} :: struct {\n", s.name);
+
+    for& member: s.members {
+        string.append(out, "    ");
+        string.append(out, member.name);
+
+        if member.type {
+            conv.format(out, ": {};", member.type);
+        }
+
+        string.append(out, "\n");
+    }
+
+    string.append(out, "}");
+    string.append(out, "</code></pre>");
+
+    source_destination := generate_link_from_source(s.location, docs);
     string.append(out, "<div class=\"source-link\">");
     conv.format(out, "<a href=\"{}\">source</a>", source_destination);
     string.append(out, "</div>");
