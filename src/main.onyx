@@ -131,6 +131,17 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
         string.append(&output, "</div>");
     }
 
+    enums := filter_and_sort(docs.enumerations, p);
+    for enums {
+        output_entity_header(docs, it, &output);
+
+        output_enum_definition(docs, it, &output);
+
+        output_entity_description(it, &output);
+        
+        string.append(&output, "</div>");
+    }
+
     procs := filter_and_sort(docs.procedures, p);
     for procs {
         output_entity_header(docs, it, &output);
@@ -155,6 +166,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
     build_symbol_sidebar(
         iter.concat(
             iter.as_iter(structs)->map(x => x.name),
+            iter.as_iter(enums)->map(x => x.name),
             iter.as_iter(procs)->map(x => x.name)),
         &output);
 
@@ -285,6 +297,31 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
 
     string.append(out, "</div>");
 }
+
+output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
+    string.append(out, "<div class=\"source-definition\">");
+    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
+
+    conv.format(out, "{} :: enum {}{\n", e.name, "#flags " if e.flags&.Is_Flags else "");
+
+    for& value: e.values {
+        string.append(out, "    ");
+        string.append(out, value.name);
+
+        conv.format(out, " :: {};\n", value.value);
+    }
+
+    string.append(out, "}");
+    string.append(out, "</code></pre>");
+
+    source_destination := generate_link_from_source(e.location, docs);
+    string.append(out, "<div class=\"source-link\">");
+    conv.format(out, "<a href=\"{}\">source</a>", source_destination);
+    string.append(out, "</div>");
+
+    string.append(out, "</div>");
+}
+
 
 build_navbar :: (docs: &doc.Doc) -> str {
     return #file_contents "./parts/navbar.html";
