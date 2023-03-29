@@ -6,7 +6,7 @@ use core.encoding {osad}
 use markdown
 
 generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
-    tprintf("https://github.com/onyx-lang/onyx/tree/dev{}#L{}",
+    tprintf("https://github.com/onyx-lang/onyx/tree/docgen{}#L{}",
         string.advance(docs.files[s.file_id].name, "/usr/share/onyx".count),
         s.line);
 
@@ -155,8 +155,10 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
         iter.concat(
             iter.as_iter(structs)->flatMap(x => iter.concat(
                 iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
-                iter.as_iter(x.methods)->map(x, (m, x) => SidebarSymbol.{ m.name, tprintf("{}-{}", x.name, m.name), 1 }))
-            ),
+                iter.as_iter(x.methods)->map(x, (m, x) =>
+                    SidebarSymbol.{ m.name, tprintf("{}-{}", x.name, m.name), 1 }
+                )
+            )),
             iter.as_iter(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
             iter.as_iter(procs)->map(x => SidebarSymbol.{ x.name, x.name, 0 })),
         &output);
@@ -209,7 +211,7 @@ output_entity_header :: (docs: &doc.Doc, ent: &doc.Doc_Entity, output: &dyn_str)
 output_entity_description :: (ent: &doc.Doc_Entity, output: &dyn_str) {
     string.append(output, "<div class=\"description-container\">");
     if !ent.notes {
-        string.append(output, "<i>No documentation provided.</i>");
+        // string.append(output, "<i>No documentation provided.</i>");
     } else {
         generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(ent.notes));
         defer delete(&generated_markup);

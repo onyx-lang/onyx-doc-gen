@@ -326,6 +326,7 @@ main .symbol-sidebar {
     background-color: var(--navbar-background);
     border-left: 2px solid var(--main-separator-color);
     text-decoration: none;
+    overflow-x: hidden;
 }
 
 main .symbol-sidebar a {
