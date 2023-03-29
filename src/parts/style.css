@@ -189,7 +189,7 @@ main .main-view .package-entry {
     padding: 16px;
 }
 
-main .main-view .package-entry:target {
+main .main-view *:target {
     transition: all 200ms linear;
     background-color: var(--main-separator-color);
 }
@@ -244,6 +244,35 @@ main .main-view .entry-name {
     font-family: monospace;
     font-weight: 700;
     font-size: 1.2rem;
+}
+
+main .main-view .spacer {
+    margin-top: 24px;
+    border-top: 1px solid var(--main-separator-color);
+}
+
+main .main-view .method-header {
+    margin-top: 20px;
+    padding: 4px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    width: 100%;
+    transition: all 200ms;
+}
+
+main .main-view .method-header:hover {
+    cursor: pointer;
+    background-color: var(--main-separator-color);
+}
+
+main .main-view .method-header + * {
+    padding: 0 8px;
+}
+
+main .main-view .accordion-toggle + * {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.2s ease-in-out;
 }
 
 main .main-view pre {

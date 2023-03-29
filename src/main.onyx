@@ -1,10 +1,12 @@
-use core
-use core.encoding {osad}
-
 #load "./markdown"
 
+use core {package, *}
+use core.encoding {osad}
+
+use markdown
+
 generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
-    tprintf("https://github.com/onyx-lang/onyx/tree/master{}#L{}",
+    tprintf("https://github.com/onyx-lang/onyx/tree/dev{}#L{}",
         string.advance(docs.files[s.file_id].name, "/usr/share/onyx".count),
         s.line);
 
@@ -125,8 +127,6 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
         output_entity_header(docs, it, &output);
 
         output_struct_definition(docs, it, &output);
-
-        output_entity_description(it, &output);
         
         string.append(&output, "</div>");
     }
@@ -136,8 +136,6 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
         output_entity_header(docs, it, &output);
 
         output_enum_definition(docs, it, &output);
-
-        output_entity_description(it, &output);
         
         string.append(&output, "</div>");
     }
@@ -146,17 +144,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
     for procs {
         output_entity_header(docs, it, &output);
 
-        if it.flags & .Is_Overloaded {
-            for& p: it.overloads {
-                p.name = it.name;
-                output_procedure_definition(docs, p, &output);
-            }
-
-        } else {
-            output_procedure_definition(docs, it, &output);
-        }
-
-        output_entity_description(it, &output);
+        output_procedure_definition(docs, it, &output);
 
         string.append(&output, "</div>");
     }
@@ -165,9 +153,12 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
 
     build_symbol_sidebar(
         iter.concat(
-            iter.as_iter(structs)->map(x => x.name),
-            iter.as_iter(enums)->map(x => x.name),
-            iter.as_iter(procs)->map(x => x.name)),
+            iter.as_iter(structs)->flatMap(x => iter.concat(
+                iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
+                iter.as_iter(x.methods)->map(x, (m, x) => SidebarSymbol.{ m.name, tprintf("{}-{}", x.name, m.name), 1 }))
+            ),
+            iter.as_iter(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
+            iter.as_iter(procs)->map(x => SidebarSymbol.{ x.name, x.name, 0 })),
         &output);
 
     string.append(&output, "</main>");
@@ -230,6 +221,15 @@ output_entity_description :: (ent: &doc.Doc_Entity, output: &dyn_str) {
 }
 
 output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn_str) {
+    if p.flags & .Is_Overloaded {
+        for& it: p.overloads {
+            it.name = p.name;
+            output_procedure_definition(docs, it, out);
+        }
+        
+        return;
+    }
+
     string.append(out, "<div class=\"source-definition\">");
     conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
 
@@ -256,6 +256,8 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
     string.append(out, "</div>");
 
     string.append(out, "</div>");
+
+    output_entity_description(p, out);
 }
 
 output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_str) {
@@ -295,7 +297,26 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
     conv.format(out, "<a href=\"{}\">source</a>", source_destination);
     string.append(out, "</div>");
 
+    output_entity_description(s, out);
     string.append(out, "</div>");
+
+    array.sort(s.methods, (x, y) => string.compare(x.name, y.name));
+    
+    if s.methods {
+        string.append(out, "<div class=\"method-header accordion-toggle\">Methods</div>");
+
+        string.append(out, "<div>");
+        for &method: s.methods {
+            conv.format(out, "<div id=\"{}-{}\">", s.name, method.name);
+
+            output_entity_header(docs, method, out);
+            output_procedure_definition(docs, method, out);
+
+            string.append(out, "</div>");
+            string.append(out, "</div>");
+        }
+        string.append(out, "</div>");
+    }
 }
 
 output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
@@ -320,12 +341,10 @@ output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
     string.append(out, "</div>");
 
     string.append(out, "</div>");
+
+    output_entity_description(e, out);
 }
 
-
-build_navbar :: (docs: &doc.Doc) -> str {
-    return #file_contents "./parts/navbar.html";
-}
 
 build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.Id) -> str {
     log(.Info, "Generating package sidebar.");
@@ -373,12 +392,19 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
     }
 }
 
-build_symbol_sidebar :: (symbols: Iterator(str), output: &dyn_str) {
+SidebarSymbol :: struct {
+    name: str;
+    link_name: str;
+    indent: u32;
+}
+
+build_symbol_sidebar :: (symbols: Iterator(SidebarSymbol), output: &dyn_str) {
     string.append(output, "<div class=\"symbol-sidebar\">");
     string.append(output, "<h1>Symbols</h1>");
 
     for symbols {
-        conv.format(output, "<a href=\"#{}\"><div class=\"symbol-link\">{}</div></a>", it, it);
+        conv.format(output, "<a href=\"#{}\" style=\"position: relative; left: {}px\"><div class=\"symbol-link\">{}</div></a>",
+            it.link_name, it.indent * 20, it.name);
     }
 
     string.append(output, "</div>");

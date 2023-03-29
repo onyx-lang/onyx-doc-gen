@@ -23,5 +23,21 @@ window.addEventListener("load", function () {
     } else {
         set_colors("light");
     }
+
+    document.querySelectorAll(".accordion-toggle").forEach((elem) => {
+        elem.addEventListener("click", () => {
+            elem.classList.toggle("active");
+
+            let panel = elem.nextElementSibling;
+            if (panel.style.maxHeight) {
+                panel.style.maxHeight = null;
+            } else {
+                panel.style.maxHeight = panel.scrollHeight + "px";
+            }
+        });
+
+        let panel = elem.nextElementSibling;
+        panel.style.maxHeight = panel.scrollHeight + "px";
+    });
 });
 

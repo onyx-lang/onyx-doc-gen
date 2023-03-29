@@ -18,8 +18,6 @@ Add ability for description at the package level
     `#doc "..." package foo`?
 
 Add documentation for:
-    structures - Done
-    enums      - Done
     `#distinct`
     interfaces   <- This will be hard
     type aliases
