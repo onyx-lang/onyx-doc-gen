@@ -239,7 +239,7 @@ main .main-view {
     grid-area: "main";
 }
 
-main .main-view .package-entry {
+main .main-view > .package-entry {
     margin: 8px;
     padding: 16px;
 }
@@ -329,7 +329,14 @@ main .main-view .method-header:hover {
 }
 
 main .main-view .method-header + * {
-    padding: 0 8px;
+    padding: 16px 0 16px 16px;
+    border-left: 16px solid var(--main-separator-color);
+}
+
+main .main-view .method-header + * > * {
+    border-top: 1px solid var(--main-separator-color);
+    margin: 8px 0;
+    padding: 16px 0;
 }
 
 main .main-view .accordion-toggle + * {
