@@ -78,6 +78,7 @@ navbar .logo {
 navbar .searchbar {
     grid-area: "searchbar";
 
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -87,10 +88,7 @@ navbar .searchbar .search-container {
     border: 1px solid var(--main-separator-color);
     width: 60%;
     height: 80%;
-
-    display: flex;
-    align-items: stretch;
-    justify-content: center;
+    position: relative;
 }
 
 navbar .searchbar input {
@@ -102,6 +100,8 @@ navbar .searchbar input {
     outline: none;
     border: none;
     padding: 2px;
+    display: block;
+    width: 100%;
 
     background-color: var(--navbar-search-background);
     color: var(--navbar-search-color);
@@ -119,10 +119,65 @@ navbar .searchbar button {
     border: none;
 }
 
-navbar .searchbar .search-container:hover *,
-navbar .searchbar .search-container:focus-within *
+navbar .searchbar .search-container:hover input,
+navbar .searchbar .search-container:focus-within input
 {
     background-color: var(--navbar-search-hover-background);
+}
+
+navbar .search-results {
+    background: var(--navbar-background);
+
+    display: block;
+    position: absolute;
+    z-index: 100;
+    width: 100%;
+    padding: 0px;
+
+    list-style: none;
+
+    box-shadow: 0px 2px 4px 3px rgba(0, 0, 0, 0.2);
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    display: none;
+}
+
+/* navbar input:focus-within .search-results {
+     display: initial;
+} */
+
+navbar .search-results li {
+    padding: 4px;
+    display: grid;
+    grid-template-columns: max(100px) 1fr 1fr;
+    grid-template-rows: auto;
+    transition: all 200ms;
+}
+
+navbar .search-results li:hover {
+    cursor: pointer;
+    background-color: var(--navbar-search-background);
+}
+
+navbar .search-results li .search-result-badge {
+    background-color: var(--navbar-color);
+    color: var(--navbar-background);
+
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+navbar .search-results li .search-result-name {
+    font-weight: 600;
+    font-size: 1.2rem;
+    font-family: monospace;
+    padding: 4px;
+}
+
+navbar .search-results li .search-result-package {
+    text-align: right;
+    padding: 4px;
 }
 
 

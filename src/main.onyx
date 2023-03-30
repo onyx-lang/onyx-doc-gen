@@ -85,6 +85,10 @@ generate_static_folder :: (destination_folder: str) {
         io.stream_write(it, #file_contents "./parts/highlight.min.js");
     }
 
+    for os.with_file(tprintf("{}/fuse.js", static_folder), .Write) {
+        io.stream_write(it, #file_contents "./parts/fuse.js");
+    }
+
     for os.with_file(tprintf("{}/script.js", static_folder), .Write) {
         io.stream_write(it, #file_contents "./parts/script.js");
     }
@@ -99,6 +103,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
 
         <link rel="stylesheet" href="/static/highlight.min.css" />
         <link rel="stylesheet" href="/static/style.css" />
+        <script src="/static/fuse.js"></script> 
         <script src="/static/highlight.min.js"></script>
         <script src="/static/script.js"></script>
     </head>
@@ -156,7 +161,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
             iter.as_iter(structs)->flatMap(x => iter.concat(
                 iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
                 iter.as_iter(x.methods)->map(x, (m, x) =>
-                    SidebarSymbol.{ m.name, tprintf("{}-{}", x.name, m.name), 1 }
+                    SidebarSymbol.{ m.name, tprintf("{}.{}", x.name, m.name), 1 }
                 )
             )),
             iter.as_iter(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
@@ -168,11 +173,11 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
     string.append(&output, """
 <script>
     window.addEventListener("load", () => hljs.highlightAll());
-</script>
+</script>""");
 
-</body>
-</html>
-""");
+    string.append(&output, build_json_index_script_tag(docs));
+
+    string.append(&output, "</body></html>");
     return output;
 }
 
@@ -309,7 +314,7 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
 
         string.append(out, "<div>");
         for &method: s.methods {
-            conv.format(out, "<div id=\"{}-{}\">", s.name, method.name);
+            conv.format(out, "<div id=\"{}.{}\">", s.name, method.name);
 
             output_entity_header(docs, method, out);
             output_procedure_definition(docs, method, out);
@@ -410,5 +415,55 @@ build_symbol_sidebar :: (symbols: Iterator(SidebarSymbol), output: &dyn_str) {
     }
 
     string.append(output, "</div>");
+}
+
+build_json_index_script_tag :: (docs: &doc.Doc) -> str {
+    #persist cached: str;
+    if cached {
+        return cached;
+    }
+
+    output: dyn_str;
+
+    string.append(&output, """<script>
+    window.PACKAGE_INDEX = [
+""");
+
+    Index_Entry :: struct {
+        Type :: enum { Proc; Struct; Method; Enum; }
+        type: Type;
+        name: str;
+        visibility: doc.Doc_Visibility;
+        package_id: doc.Doc_Package.Id;
+        struct_name: str;
+    }
+
+    symbols := iter.concat(
+        iter.as_iter(docs.structures)->flatMap(x => iter.concat(
+            iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
+            iter.as_iter(x.methods)->map(x, (m, x) =>
+                Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
+            )
+        )),
+        iter.as_iter(docs.enumerations)->map(x => Index_Entry.{ .Enum, x.name, x.visibility, x.package_id }),
+        iter.as_iter(docs.procedures)->map(x => Index_Entry.{ .Proc, x.name, x.visibility, x.package_id }))
+        ->filter(x => x.visibility != .Local);
+
+    for sym: symbols {
+        pack := docs.packages[sym.package_id];
+        string.append(&output, "{");
+        conv.format(&output,"\"type\":\"{}\",", sym.type);
+        conv.format(&output,"\"package\":\"{}\",", pack.qualified_name);
+
+        if sym.struct_name do conv.format(&output,"\"name\":\"{}.{}\",", sym.struct_name, sym.name);
+        else               do conv.format(&output,"\"name\":\"{}\",", sym.name);
+
+        string.append(&output, "},");
+    }
+
+    string.append(&output, "]; </script>");
+    
+    cached = output;
+    return output;
 }
 
