@@ -4,22 +4,21 @@ Configurable options:
     - How to map source location to online viewable source code
     - If source code should be viewable at all
 
-Search bar should work
-
 Index page with Readme file?
 
 Markdown parsing in documentation notes, and readme file?
+    - This is mostly done for now
 
 Mark active package selection
     Probably need to regenerate the package hierarchy per page
-
-Add ability for description at the package level
-    `#package_doc`?
-    `#doc "..." package foo`?
 
 Add documentation for:
     `#distinct`
     interfaces   <- This will be hard
     type aliases
     operator overloads
+
+Add ability for description at the package level
+    `#package_doc`?
+    `#doc "..." package foo`?
 
