@@ -30,6 +30,17 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
             continue;
         }
 
+        if string.starts_with(line, "- ") {
+            set_translator_state(&state, &output, .Inside_Bullet_List);
+
+            line = string.advance(line, 2) |> string.strip_leading_whitespace();
+
+            string.append(&output, "<li>");
+            process_single_line(line, &output);
+            string.append(&output, "</li>");
+            continue;
+        }
+
         // Empty lines clear formatting
         if string.empty(line) {
             flush_state_to_base(&state, &output);
@@ -55,8 +66,7 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
         // TODO: Process the line
         line = string.strip_whitespace(line);
         string.append(&output, " ");
-        string.append(&output, line);
-        // process_single_line(line, &output);
+        process_single_line(line, &output);
     }
 
     flush_state_to_base(&state, &output);
@@ -64,51 +74,118 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
 }
 
 #local
-process_single_line :: (line: str, output: &dyn_str) {
+process_single_line :: (line_: str, output: &dyn_str) {
     Line_State :: enum { Normal; Bold; Italics; Bold_Italics; Code; }
+    line := line_;
     state: Line_State;
 
-    // HACK
-    line.count += 2;
+    for line_tokenizer(line) {
+        next_state := Line_State.Normal;
 
-    for array.windows(line, 3) {
-        next_state := state;
-
-        switch it[0] {
-            case '*' {
-                if     it == "***"      do next_state = .Bold_Italics;
-                elseif it[0..2] == "**" do next_state = .Bold;
-                elseif it[0..1] == "*"  do next_state = .Italics;
-            }
-
-            case '`' {
-                next_state = .Code;
-            }
-
-            case #default {
-                string.append(output, it[0]);
-                continue;
-            }
+        if it.is_character {
+            string.append(output, it.char);
+            continue;
         }
 
-        if next_state != state {
-            switch state {
-                case .Bold do string.append(output, "</strong>");
-                case .Italics do string.append(output, "</em>");
-                case .Bold_Italics do string.append(output, "</em></strong>");
-                case .Code do string.append(output, "</code>");
-            }
+        switch it.action {
+            case .Bold         do next_state = .Bold;
+            case .Italics      do next_state = .Italics;
+            case .Bold_Italics do next_state = .Bold_Italics;
+            case .Code         do next_state = .Code;
+        }
 
-            switch next_state {
-                case .Bold do string.append(output, "<strong>");
-                case .Italics do string.append(output, "<em>");
-                case .Bold_Italics do string.append(output, "<strong><em>");
-                case .Code do string.append(output, "<code>");
-            }
+        if next_state != .Normal {
+            if state != .Normal {
+                emit_tag_close(state);
+                state = .Normal;
 
-            state = next_state;
+            } else {
+                state = next_state;
+                emit_tag_open(state);
+            }
         }
     }
+
+    emit_tag_close(state);
+
+    emit_tag_open :: macro (state: Line_State) {
+        switch state {
+            case .Bold do string.append(output, "<strong>");
+            case .Italics do string.append(output, "<em>");
+            case .Bold_Italics do string.append(output, "<strong><em>");
+            case .Code do string.append(output, "<code class=\"hljs language-onyx\">");
+        }
+    }
+    
+    emit_tag_close :: macro (state: Line_State) {
+        switch state {
+            case .Bold do string.append(output, "</strong>");
+            case .Italics do string.append(output, "</em>");
+            case .Bold_Italics do string.append(output, "</em></strong>");
+            case .Code do string.append(output, "</code>");
+        }
+    }
+}
+
+#local
+line_tokenizer :: (line: str) -> Iterator(Token) {
+    return iter.generator(
+        &.{ line = line, offset = 0 },
+
+        ctx => {
+            if ctx.offset >= ctx.line.length {
+                return Token.{}, false;
+            }
+
+            ch := ctx.line[ctx.offset];
+            switch ch {
+                case '*' {
+                    if ctx.line[ctx.offset + 1] == '*' && ctx.line[ctx.offset + 2] == '*' {
+                        ctx.offset += 3;
+                        return .{false, 0, .Bold_Italics}, true;
+                    }
+
+                    if ctx.line[ctx.offset + 1] == '*' {
+                        ctx.offset += 2;
+                        return .{false, 0, .Bold}, true;
+                    }
+
+                    ctx.offset += 1;
+                    return.{false, 0, .Italics}, true;
+                }
+
+                case '`' {
+                    ctx.offset += 1;
+                    return.{false, 0, .Code}, true;
+                }
+
+                case '\\' {
+                    defer ctx.offset += 2;
+                    return .{ true, ctx.line[ctx.offset + 1] }, true;
+                }
+
+                case #default {
+                    ctx.offset += 1;
+                    return .{ true, ch }, true;
+                }
+            }
+        }
+    );
+}
+
+#local
+Token :: struct {
+    is_character: bool;
+    char: u8;
+    action: Token_Action;
+}
+
+#local
+Token_Action :: enum {
+    Bold;
+    Italics;
+    Bold_Italics;
+    Code;
 }
 
 #local
