@@ -108,7 +108,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
         <script src="/static/script.js"></script>
     </head>
 
-    <body>
+    <body style="display: none">
 """, p.qualified_name);
 
     string.append(&output, #file_contents "./parts/navbar.html");
@@ -121,6 +121,8 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
 
         string.append(&output, sidebar);
     }
+
+    string.append(&output, "<div class=\"divider left\"></div>");
 
     string.append(&output, "<div class=\"main-view\">");
 
@@ -155,6 +157,8 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
     }
 
     string.append(&output, "</div>");
+
+    string.append(&output, "<div class=\"divider right\"></div>");
 
     build_symbol_sidebar(
         iter.concat(
@@ -233,7 +237,10 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
             it.name = p.name;
             output_procedure_definition(docs, it, out);
         }
-        
+
+        string.append(out, "<div class=\"source-definition\">");
+        output_entity_description(p, out);
+        string.append(out, "</div>");
         return;
     }
 

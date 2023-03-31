@@ -34,6 +34,11 @@ html.light-mode {
     --main-separator-color: #dddddd;
 }
 
+html {
+    --left-panel-width: 300px;
+    --right-panel-width: 300px;
+}
+
 body {
     background-color: var(--main-background);
     color: var(--main-color);
@@ -189,13 +194,18 @@ navbar .links {
 main {
     min-height: calc(100vh - var(--navbar-height));
     display: grid;
-    grid-template-columns: minmax(200px, 1fr) 3fr 1fr;
+    grid-template-columns: var(--left-panel-width) 4px 3fr 4px var(--right-panel-width);
     grid-template-rows: auto;
     grid-template-areas: "project main symbols";
     position: relative;
 }
 
-main > * {
+main > .divider {
+    background-color: var(--main-separator-color);
+    cursor: col-resize;
+}
+
+main > *:not(.divider) {
     padding-top: var(--main-top-padding);
     padding-left: 4px;
     height: calc(100vh - var(--navbar-height));
@@ -205,7 +215,6 @@ main > * {
 
 main .package-sidebar {
     grid-area: "project";
-    border-right: 2px solid var(--main-separator-color);
     background-color: var(--navbar-background);
     text-decoration: none;
 }
@@ -333,7 +342,7 @@ main .main-view .method-header + * {
     border-left: 16px solid var(--main-separator-color);
 }
 
-main .main-view .method-header + * > * {
+main .main-view .method-header + * > *:not(:first-child) {
     border-top: 1px solid var(--main-separator-color);
     margin: 8px 0;
     padding: 16px 0;
@@ -343,10 +352,16 @@ main .main-view .accordion-toggle + * {
     overflow: hidden;
     max-height: 0;
     transition: max-height 0.2s ease-in-out;
+    transition: opacity 0.05s ease-in-out;
+}
+
+main .main-view .accordion-toggle:not(.active) + * {
+    opacity: 0;
 }
 
 main .main-view pre {
     margin-top: 10px;
+    margin-right: 4px;
     padding: 4px;
 
     border-radius: 6px;
@@ -394,7 +409,6 @@ main .main-view .source-definition .source-link a {
 main .symbol-sidebar {
     grid-area: "symbols";
     background-color: var(--navbar-background);
-    border-left: 2px solid var(--main-separator-color);
     text-decoration: none;
     overflow-x: hidden;
 }
