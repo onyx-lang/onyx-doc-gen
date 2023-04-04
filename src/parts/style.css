@@ -18,6 +18,7 @@ html.dark-mode {
     --main-color: #ffffff;
     --main-top-padding: 14px;
     --main-separator-color: #444444;
+    --main-target-color: #333333;
 }
 
 html.light-mode {
@@ -31,7 +32,8 @@ html.light-mode {
     --main-background: #ffffff;
     --main-color: #000000;
     --main-top-padding: 14;
-    --main-separator-color: #dddddd;
+    --main-separator-color: #cccccc;
+    --main-target-color: #dddddd;
 }
 
 html {
@@ -112,6 +114,11 @@ navbar .searchbar input {
     color: var(--navbar-search-color);
     transition: all 400ms;
 }
+
+navbar .searchbar input::placeholder {
+    color: var(--navbar-search-color);
+}
+    
 
 navbar .searchbar button {
     width: 50px;
@@ -263,9 +270,19 @@ main .main-view > .package-entry {
     padding: 16px;
 }
 
+@keyframes flash {
+    from {
+        background-color: var(--main-target-color);
+    }
+
+    to {
+        background-color: inherit;
+    }
+}
+
 main .main-view *:target {
-    transition: all 200ms linear;
-    background-color: var(--main-separator-color);
+    /*transition: all 200ms linear;*/
+    animation: flash 3s;
 }
 
 main .main-view .package-entry:not(:first-child) {
@@ -459,6 +476,9 @@ main .symbol-sidebar a:hover .symbol-link {
     background-color: var(--main-separator-color);
 }
 
+main {
+    border-bottom: 1px solid var(--main-separator-color);
+}
 
 .footer-container {
     display: flex;
@@ -475,7 +495,7 @@ main .symbol-sidebar a:hover .symbol-link {
     flex-basis: 0;
 }
 
-.container.dark {
+footer.container.dark {
     margin: 0 auto;
     max-width: 1200px;
     padding: 20px 0;
