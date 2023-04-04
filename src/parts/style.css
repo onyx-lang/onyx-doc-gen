@@ -56,7 +56,7 @@ navbar {
     color: var(--navbar-color);
 
     z-index: 100;
-    box-shadow: 0px -2px 4px 4px black;
+    box-shadow: 0px -1px 2px 2px black;
 
 }
 
@@ -141,7 +141,7 @@ navbar .search-results {
 
     list-style: none;
 
-    box-shadow: 0px 2px 4px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 1px 2px 1px rgba(0, 0, 0, 0.2);
     border-bottom-right-radius: 8px;
     border-bottom-left-radius: 8px;
     display: none;
@@ -219,8 +219,14 @@ main .package-sidebar {
     text-decoration: none;
 }
 
+main .package-sidebar h2 {
+    padding-left: 8px;
+    padding-bottom: 4px;
+}
+
 main .package-sidebar .item {
     font-size: 1.2rem;
+    padding-left: 8px;
     text-decoration: none !important;
 }
 
@@ -246,6 +252,10 @@ main .package-sidebar .container {
 
 main .main-view {
     grid-area: "main";
+}
+
+main .main-view h2 {
+    padding-left: 8px;
 }
 
 main .main-view > .package-entry {
@@ -309,7 +319,7 @@ main .main-view .package-entry .description-container *:not(pre) code
 }
 
 main .main-view .package-entry .description-container pre {
-    box-shadow: 0px 2px 4px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 1px 2px 1px rgba(0, 0, 0, 0.2);
 }
 
 main .main-view .entry-name {
@@ -365,7 +375,7 @@ main .main-view pre {
     padding: 4px;
 
     border-radius: 6px;
-    box-shadow: 0px 2px 4px 3px rgba(0, 0, 0, 0.5);
+    box-shadow: 0px 1px 2px 1px rgba(0, 0, 0, 0.5);
 
     overflow-x: auto;
 }
@@ -413,6 +423,11 @@ main .symbol-sidebar {
     overflow-x: hidden;
 }
 
+main .symbol-sidebar h2 {
+    padding-left: 8px;
+    padding-bottom: 4px;
+}
+
 main .symbol-sidebar a {
     text-decoration: none;
     color: var(--navbar-search-background);
@@ -437,16 +452,32 @@ main .symbol-sidebar a:hover .symbol-link {
 
 
 ::-webkit-scrollbar {
-    width: 12px;
-}
- 
-::-webkit-scrollbar-track {
-    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3); 
-    border-radius: 10px;
+    width: 8px;
 }
  
 ::-webkit-scrollbar-thumb {
-    border-radius: 10px;
-    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
+    background-color: var(--main-separator-color);
+}
+
+
+.footer-container {
+    display: flex;
+    flex-direction: row;
+}
+
+.footer-container a {
+    display: block;
+    padding: 2px 0;
+    text-decoration: none;
+}
+
+.footer-container > * {
+    flex-basis: 0;
+}
+
+.container.dark {
+    margin: 0 auto;
+    max-width: 1200px;
+    padding: 20px 0;
 }
 

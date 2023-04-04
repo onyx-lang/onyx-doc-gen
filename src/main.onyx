@@ -167,6 +167,8 @@ generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selec
 generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
     string.append(output, "</main>");
 
+    string.append(output, #file_contents "./parts/footer.html");
+
     string.append(output, """
 <script>
     window.addEventListener("load", () => hljs.highlightAll());
@@ -178,7 +180,7 @@ generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
 }
 
 generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn_str) {
-    conv.format(output, "<h1>Package {}</h1>", p.qualified_name);
+    conv.format(output, "<h2>Package {}</h2>", p.qualified_name);
 
 
     structs := filter_and_sort(docs.structures, p);
@@ -406,7 +408,7 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
     output: dyn_str;
     string.append(&output, "<div class=\"package-sidebar\">");
 
-    string.append(&output, "<h1>Package Tree</h1>");
+    string.append(&output, "<h2>Package Tree</h2>");
     
     tlp := iter.as_iter(docs.packages, by_pointer=true)
             |> iter.filter(x => cast(i32, x.parent) == -1)
@@ -454,11 +456,11 @@ SidebarSymbol :: struct {
 
 build_symbol_sidebar :: (symbols: Iterator(SidebarSymbol), output: &dyn_str) {
     string.append(output, "<div class=\"symbol-sidebar\">");
-    string.append(output, "<h1>Symbols</h1>");
+    string.append(output, "<h2>Symbols</h2>");
 
     for symbols {
         conv.format(output, "<a href=\"#{}\" style=\"position: relative; left: {}px\"><div class=\"symbol-link\">{}</div></a>",
-            it.link_name, it.indent * 20, it.name);
+            it.link_name, it.indent * 20 + 8, it.name);
     }
 
     string.append(output, "</div>");
