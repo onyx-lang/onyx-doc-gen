@@ -1,5 +1,6 @@
 function make_resizer(divider_selector, css_prop_name, side, on_resize) {
     const elem = document.querySelector(divider_selector);
+    if (!elem) return;
     const root = document.documentElement;
 
     let mx = 0;

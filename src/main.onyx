@@ -13,9 +13,11 @@ generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
 main :: (args: [] cstr) {
     if args.length == 0 {
         eprintf("""Usage:
-    onyx-doc-gen <file.odoc> [output_folder=generated]\n""");
+    onyx-doc-gen <file.odoc> [output_folder=generated] [index_file]\n""");
         os.exit(1);
     }
+
+    index_file := "";
     
     odoc_file := string.as_str(args[0]);
     contents  := os.get_contents(odoc_file);
@@ -25,8 +27,12 @@ main :: (args: [] cstr) {
     }
 
     destination_folder := "generated";
-    if args.length == 2 {
+    if args.length > 1 {
         destination_folder = string.as_str(args[1]);
+    }
+
+    if args.count > 2 {
+        index_file = string.as_str(args[2]);
     }
 
     maybe_docs := osad.deserialize(doc.Doc, contents);
@@ -38,6 +44,10 @@ main :: (args: [] cstr) {
     docs := maybe_docs->unwrap();
 
     generate_docs(&docs, destination_folder);
+
+    if index_file {
+        generate_index_file(&docs, index_file, destination_folder);
+    }
 }
 
 generate_docs :: (docs: &doc.Doc, destination_folder: str) {
@@ -56,12 +66,39 @@ generate_docs :: (docs: &doc.Doc, destination_folder: str) {
     os.dir_create(package_folder);
 
     for& p: docs.packages {
-        p_html := generate_package_html_file(docs, p);
-
         for os.with_file(tprintf("{}/{}.html", package_folder, p.qualified_name), .Write) {
-            io.stream_write(it, p_html);
+            output: dyn_str;
+            generate_html_file_start(docs, &output, tprintf("Package {}", p.qualified_name), ~~p.id);
+            generate_package_html_file(docs, p, &output);
+            generate_html_file_end(docs, &output);
+
+            io.stream_write(it, output);
             log(.Info, tprintf("Created '{}.html'", p.qualified_name));
         }
+    }
+}
+
+generate_index_file :: (docs: &doc.Doc, index_file: str, destination_folder: str) {
+    index_contents := os.get_contents(index_file);
+    if !index_contents {
+        eprintf("Failed to open file {}.\n", index_file);
+        return;
+    }
+
+    for os.with_file(tprintf("{}/index.html", destination_folder), .Write) {
+        output: dyn_str;
+        generate_html_file_start(docs, &output, "Index");
+
+        generated_markup := markdown.translate_to_html(index_contents);
+
+        string.append(&output, "<div>");
+        string.append(&output, generated_markup);
+        string.append(&output, "</div>");
+
+        generate_html_file_end(docs, &output);
+
+        io.stream_write(it, output);
+        log(.Info, "Created 'index.html'");
     }
 }
 
@@ -94,12 +131,11 @@ generate_static_folder :: (destination_folder: str) {
     }
 }
 
-generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
-    output: dyn_str;
-    conv.format(&output, """
+generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selected_package_id := -1) {
+    conv.format(output, """
 <html class="dark-mode">
     <head>
-        <title>Package {}</title>
+        <title>{}</title>
 
         <link rel="stylesheet" href="/static/highlight.min.css" />
         <link rel="stylesheet" href="/static/style.css" />
@@ -109,56 +145,72 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
     </head>
 
     <body style="display: none">
-""", p.qualified_name);
+""", title);
 
-    string.append(&output, #file_contents "./parts/navbar.html");
+    string.append(output, #file_contents "./parts/navbar.html");
 
-    string.append(&output, "<main>");
+    string.append(output, "<main>");
 
     {
-        sidebar := build_package_tree_sidebar(docs, p.id);
+        sidebar := build_package_tree_sidebar(docs, ~~selected_package_id);
         defer delete(&sidebar);
 
-        string.append(&output, sidebar);
+        string.append(output, sidebar);
     }
 
-    string.append(&output, "<div class=\"divider left\"></div>");
+    string.append(output, "<div class=\"divider left\"></div>");
 
-    string.append(&output, "<div class=\"main-view\">");
+    string.append(output, "<div class=\"main-view\">");
 
-    conv.format(&output, "<h1>Package {}</h1>", p.qualified_name);
+}
+
+generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
+    string.append(output, "</main>");
+
+    string.append(output, """
+<script>
+    window.addEventListener("load", () => hljs.highlightAll());
+</script>""");
+
+    string.append(output, build_json_index_script_tag(docs));
+
+    string.append(output, "</body></html>");
+}
+
+generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn_str) {
+    conv.format(output, "<h1>Package {}</h1>", p.qualified_name);
 
 
     structs := filter_and_sort(docs.structures, p);
     for structs {
-        output_entity_header(docs, it, &output);
+        output_entity_header(docs, it, output);
 
-        output_struct_definition(docs, it, &output);
+        output_struct_definition(docs, it, output);
         
-        string.append(&output, "</div>");
+        string.append(output, "</div>");
     }
 
     enums := filter_and_sort(docs.enumerations, p);
     for enums {
-        output_entity_header(docs, it, &output);
+        output_entity_header(docs, it, output);
 
-        output_enum_definition(docs, it, &output);
+        output_enum_definition(docs, it, output);
         
-        string.append(&output, "</div>");
+        string.append(output, "</div>");
     }
 
     procs := filter_and_sort(docs.procedures, p);
     for procs {
-        output_entity_header(docs, it, &output);
+        output_entity_header(docs, it, output);
 
-        output_procedure_definition(docs, it, &output);
+        output_procedure_definition(docs, it, output);
 
-        string.append(&output, "</div>");
+        string.append(output, "</div>");
     }
 
-    string.append(&output, "</div>");
+    string.append(output, "</div>");
 
-    string.append(&output, "<div class=\"divider right\"></div>");
+    string.append(output, "<div class=\"divider right\"></div>");
 
     build_symbol_sidebar(
         iter.concat(
@@ -170,19 +222,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package) -> str {
             )),
             iter.as_iter(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
             iter.as_iter(procs)->map(x => SidebarSymbol.{ x.name, x.name, 0 })),
-        &output);
-
-    string.append(&output, "</main>");
-
-    string.append(&output, """
-<script>
-    window.addEventListener("load", () => hljs.highlightAll());
-</script>""");
-
-    string.append(&output, build_json_index_script_tag(docs));
-
-    string.append(&output, "</body></html>");
-    return output;
+        output);
 }
 
 filter_and_sort :: (arr: [] $T, p: &doc.Doc_Package) -> [] &T {

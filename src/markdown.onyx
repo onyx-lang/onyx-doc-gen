@@ -30,7 +30,9 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
             continue;
         }
 
-        if string.starts_with(line, "- ") {
+        // Check for bullet list
+        if string.starts_with(line, "- ")
+            || string.starts_with(line, "* ") {
             set_translator_state(&state, &output, .Inside_Bullet_List);
 
             line = string.advance(line, 2) |> string.strip_leading_whitespace();
@@ -38,6 +40,13 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
             string.append(&output, "<li>");
             process_single_line(line, &output);
             string.append(&output, "</li>");
+            continue;
+        }
+
+        // Check for horizontal rule
+        if string.starts_with(line, "---") {
+            flush_state_to_base(&state, &output);
+            string.append(&output, "<hr />");
             continue;
         }
 
@@ -63,7 +72,6 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
 
         set_translator_state(&state, &output, .Inside_Paragraph);
 
-        // TODO: Process the line
         line = string.strip_whitespace(line);
         string.append(&output, " ");
         process_single_line(line, &output);
@@ -79,7 +87,8 @@ process_single_line :: (line_: str, output: &dyn_str) {
     line := line_;
     state: Line_State;
 
-    for line_tokenizer(line) {
+    tokens := line_tokenizer(line);
+    for tokens {
         next_state := Line_State.Normal;
 
         if it.is_character {
@@ -92,6 +101,18 @@ process_single_line :: (line_: str, output: &dyn_str) {
             case .Italics      do next_state = .Italics;
             case .Bold_Italics do next_state = .Bold_Italics;
             case .Code         do next_state = .Code;
+
+            case .Link {
+                if state != .Code {
+                    path := tokens->take_while(x => x.char != ']')->map(x => x.char) |> iter.to_array();
+
+                    iter.next(tokens);
+                    iter.next(tokens);
+
+                    link := tokens->take_while(x => x.char != ')')->map(x => x.char) |> iter.to_array();
+                    conv.format(output, "<a href=\"{}\">{}</a>", cast([] u8) link, cast([] u8) path);
+                }
+            }
         }
 
         if next_state != .Normal {
@@ -164,6 +185,11 @@ line_tokenizer :: (line: str) -> Iterator(Token) {
                     return .{ true, ctx.line[ctx.offset + 1] }, true;
                 }
 
+                case '[' {
+                    defer ctx.offset += 1;
+                    return .{false, 0, .Link}, true;
+                }
+
                 case #default {
                     ctx.offset += 1;
                     return .{ true, ch }, true;
@@ -186,6 +212,7 @@ Token_Action :: enum {
     Italics;
     Bold_Italics;
     Code;
+    Link;
 }
 
 #local
