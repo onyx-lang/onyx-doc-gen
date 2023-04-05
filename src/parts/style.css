@@ -281,7 +281,6 @@ main .main-view > .package-entry {
 }
 
 main .main-view *:target {
-    /*transition: all 200ms linear;*/
     animation: flash 3s;
 }
 

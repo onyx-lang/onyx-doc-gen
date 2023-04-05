@@ -1,88 +1,151 @@
 /*
+Visual Studio-like style based on original C# coloring by Jason Diamond <jason@diamond.name>
+*/
+html.light-mode .hljs {
+  background: white;
+  color: black;
+}
+
+html.light-mode .hljs-comment,
+html.light-mode .hljs-quote,
+html.light-mode .hljs-variable {
+  color: #008000;
+}
+
+html.light-mode .hljs-keyword,
+html.light-mode .hljs-selector-tag,
+html.light-mode .hljs-built_in,
+html.light-mode .hljs-name,
+html.light-mode .hljs-tag {
+  color: #00f;
+}
+
+html.light-mode .hljs-string,
+html.light-mode .hljs-title,
+html.light-mode .hljs-section,
+html.light-mode .hljs-attribute,
+html.light-mode .hljs-literal,
+html.light-mode .hljs-template-tag,
+html.light-mode .hljs-template-variable,
+html.light-mode .hljs-type,
+html.light-mode .hljs-addition {
+  color: #a31515;
+}
+
+html.light-mode .hljs-deletion,
+html.light-mode .hljs-selector-attr,
+html.light-mode .hljs-selector-pseudo,
+html.light-mode .hljs-meta {
+  color: #2b91af;
+}
+
+html.light-mode .hljs-doctag {
+  color: #808080;
+}
+
+html.light-mode .hljs-attr {
+  color: #f00;
+}
+
+html.light-mode .hljs-symbol,
+html.light-mode .hljs-bullet,
+html.light-mode .hljs-link {
+  color: #00b0e8;
+}
+
+
+html.light-mode .hljs-emphasis {
+  font-style: italic;
+}
+
+html.light-mode .hljs-strong {
+  font-weight: bold;
+}
+
+/*
  * Visual Studio 2015 dark style
  * Author: Nicolas LLOBERA <nllobera@gmail.com>
  */
 
-.hljs {
+html.dark-mode .hljs {
   background: #1E1E1E;
   color: #DCDCDC;
 }
 
-.hljs-keyword,
-.hljs-literal,
-.hljs-symbol,
-.hljs-name {
+html.dark-mode .hljs-keyword,
+html.dark-mode .hljs-literal,
+html.dark-mode .hljs-symbol,
+html.dark-mode .hljs-name {
   color: #569CD6;
 }
-.hljs-link {
+html.dark-mode .hljs-link {
   color: #569CD6;
   text-decoration: underline;
 }
 
-.hljs-built_in,
-.hljs-type {
+html.dark-mode .hljs-built_in,
+html.dark-mode .hljs-type {
   color: #4EC9B0;
 }
 
-.hljs-number,
-.hljs-class {
+html.dark-mode .hljs-number,
+html.dark-mode .hljs-class {
   color: #B8D7A3;
 }
 
-.hljs-string,
-.hljs-meta .hljs-string {
+html.dark-mode .hljs-string,
+html.dark-mode .hljs-meta .hljs-string {
   color: #D69D85;
 }
 
-.hljs-regexp,
-.hljs-template-tag {
+html.dark-mode .hljs-regexp,
+html.dark-mode .hljs-template-tag {
   color: #9A5334;
 }
 
-.hljs-subst,
-.hljs-function,
-.hljs-title,
-.hljs-params,
-.hljs-formula {
+html.dark-mode .hljs-subst,
+html.dark-mode .hljs-function,
+html.dark-mode .hljs-title,
+html.dark-mode .hljs-params,
+html.dark-mode .hljs-formula {
   color: #DCDCDC;
 }
 
-.hljs-comment,
-.hljs-quote {
+html.dark-mode .hljs-comment,
+html.dark-mode .hljs-quote {
   color: #57A64A;
   font-style: italic;
 }
 
-.hljs-doctag {
+html.dark-mode .hljs-doctag {
   color: #608B4E;
 }
 
-.hljs-meta,
-.hljs-meta .hljs-keyword,
-
-.hljs-tag {
+html.dark-mode .hljs-meta,
+html.dark-mode .hljs-meta .hljs-keyword,
+html.dark-mode .hljs-tag {
   color: #9B9B9B;
 }
 
-.hljs-variable,
-.hljs-template-variable {
+html.dark-mode .hljs-variable,
+html.dark-mode .hljs-template-variable {
   color: #BD63C5;
 }
 
-.hljs-attr,
-.hljs-attribute {
+html.dark-mode .hljs-attr,
+html.dark-mode .hljs-attribute {
   color: #9CDCFE;
 }
 
-.hljs-section {
+html.dark-mode .hljs-section {
   color: gold;
 }
 
-.hljs-emphasis {
+html.dark-mode .hljs-emphasis {
   font-style: italic;
 }
 
-.hljs-strong {
+html.dark-mode .hljs-strong {
   font-weight: bold;
 }
 
@@ -90,22 +153,22 @@
   font-family:'Monospace';
 }*/
 
-.hljs-bullet,
-.hljs-selector-tag,
-.hljs-selector-id,
-.hljs-selector-class,
-.hljs-selector-attr,
-.hljs-selector-pseudo {
+html.dark-mode .hljs-bullet,
+html.dark-mode .hljs-selector-tag,
+html.dark-mode .hljs-selector-id,
+html.dark-mode .hljs-selector-class,
+html.dark-mode .hljs-selector-attr,
+html.dark-mode .hljs-selector-pseudo {
   color: #D7BA7D;
 }
 
-.hljs-addition {
+html.dark-mode .hljs-addition {
   background-color: #144212;
   display: inline-block;
   width: 100%;
 }
 
-.hljs-deletion {
+html.dark-mode .hljs-deletion {
   background-color: #600;
   display: inline-block;
   width: 100%;
