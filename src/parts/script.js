@@ -108,7 +108,7 @@ window.addEventListener("load", function () {
 
     searchbar.addEventListener("input", function(ev) {
         let result_html = "";
-        let results = fuse.search(ev.target.value, { limit: 5 });
+        let results = fuse.search(ev.target.value);
         for (let res of results) {
             let redirection = `/packages/${res.item.package}.html#${res.item.name}`;
             let name = res.item.name;
