@@ -216,7 +216,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
 
     build_symbol_sidebar(
         iter.concat(
-            iter.as_iter(structs)->flatMap(x => iter.concat(
+            iter.as_iter(structs)->flat_map(x => iter.concat(
                 iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
                 iter.as_iter(x.methods)->map(x, (m, x) =>
                     SidebarSymbol.{ m.name, tprintf("{}.{}", x.name, m.name), 1 }
@@ -488,7 +488,7 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
     }
 
     symbols := iter.concat(
-        iter.as_iter(docs.structures)->flatMap(x => iter.concat(
+        iter.as_iter(docs.structures)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
             iter.as_iter(x.methods)->map(x, (m, x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
