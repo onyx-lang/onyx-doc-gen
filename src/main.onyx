@@ -182,33 +182,25 @@ generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
 generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn_str) {
     conv.format(output, "<h2>Package {}</h2>", p.qualified_name);
 
+    output_all :: macro (arr, f) => {
+        for arr {
+            output_entity_header(docs, it, output);
+            f(docs, it, output);
+            string.append(output, "</div>");
+        }
+    }
 
     structs := filter_and_sort(docs.structures, p);
-    for structs {
-        output_entity_header(docs, it, output);
-
-        output_struct_definition(docs, it, output);
-        
-        string.append(output, "</div>");
-    }
+    output_all(structs, output_struct_definition);
 
     enums := filter_and_sort(docs.enumerations, p);
-    for enums {
-        output_entity_header(docs, it, output);
+    output_all(enums, output_enum_definition);
 
-        output_enum_definition(docs, it, output);
-        
-        string.append(output, "</div>");
-    }
+    distincts := filter_and_sort(docs.distinct_types, p);
+    output_all(distincts, output_distinct_definition);
 
     procs := filter_and_sort(docs.procedures, p);
-    for procs {
-        output_entity_header(docs, it, output);
-
-        output_procedure_definition(docs, it, output);
-
-        string.append(output, "</div>");
-    }
+    output_all(procs, output_procedure_definition);
 
     string.append(output, "</div>");
 
@@ -223,13 +215,19 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
                 )
             )),
             iter.as_iter(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
+            iter.as_iter(distincts)->flat_map(x => iter.concat(
+                iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
+                iter.as_iter(x.methods)->map(x, (m, x) =>
+                    SidebarSymbol.{ m.name, tprintf("{}.{}", x.name, m.name), 1 }
+                )
+            )),
             iter.as_iter(procs)->map(x => SidebarSymbol.{ x.name, x.name, 0 })),
         output);
 }
 
 filter_and_sort :: (arr: [] $T, p: &doc.Doc_Package) -> [] &T {
     output := iter.as_iter(arr, by_pointer=true)
-        |> iter.filter(x => x.visibility != .Local)
+        |> iter.filter(x => x.visibility == .Public)
         |> iter.filter(p, (it, p) => cast(u32, it.package_id) == ~~p.id)
         |> iter.to_array();
 
@@ -380,22 +378,8 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
     string.append(out, "</div>");
 
     array.sort(s.methods, (x, y) => string.compare(x.name, y.name));
-    
-    if s.methods {
-        string.append(out, "<div class=\"method-header accordion-toggle\">Methods</div>");
 
-        string.append(out, "<div>");
-        for &method: s.methods {
-            conv.format(out, "<div id=\"{}.{}\">", s.name, method.name);
-
-            output_entity_header(docs, method, out);
-            output_procedure_definition(docs, method, out);
-
-            string.append(out, "</div>");
-            string.append(out, "</div>");
-        }
-        string.append(out, "</div>");
-    }
+    output_method_list(docs, s.methods, s.name, out);
 }
 
 output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
@@ -422,6 +406,37 @@ output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
     string.append(out, "</div>");
 
     output_entity_description(e, out);
+}
+
+output_distinct_definition :: (docs: &doc.Doc, d: &doc.Doc_Distinct_Type, out: &dyn_str) {
+    string.append(out, "<div class=\"source-definition\">");
+    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
+    conv.format(out, "{} :: #distinct {}", d.name, d.wrapped_type);
+    string.append(out, "</code></pre>");
+
+    array.sort(d.methods, (x, y) => string.compare(x.name, y.name));
+
+    output_method_list(docs, d.methods, d.name, out);
+
+    string.append(out, "</div>");
+}
+
+output_method_list :: (docs: &doc.Doc, methods: [] doc.Doc_Procedure, name: str, out: &dyn_str) {
+    if methods {
+        string.append(out, "<div class=\"method-header accordion-toggle\">Methods</div>");
+
+        string.append(out, "<div>");
+        for &method: methods {
+            conv.format(out, "<div id=\"{}.{}\">", name, method.name);
+
+            output_entity_header(docs, method, out);
+            output_procedure_definition(docs, method, out);
+
+            string.append(out, "</div>");
+            string.append(out, "</div>");
+        }
+        string.append(out, "</div>");
+    }
 }
 
 
@@ -518,8 +533,14 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
             )
         )),
         iter.as_iter(docs.enumerations)->map(x => Index_Entry.{ .Enum, x.name, x.visibility, x.package_id }),
+        iter.as_iter(docs.distinct_types)->flat_map(x => iter.concat(
+            iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
+            iter.as_iter(x.methods)->map(x, (m, x) =>
+                Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
+            )
+        )),
         iter.as_iter(docs.procedures)->map(x => Index_Entry.{ .Proc, x.name, x.visibility, x.package_id }))
-        ->filter(x => x.visibility != .Local);
+        ->filter(x => x.visibility == .Public);
 
     for sym: symbols {
         pack := docs.packages[sym.package_id];
