@@ -304,6 +304,16 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
     }
 
     conv.format(out, ") -> {}", p.return_type);
+
+    if p.constraints {
+        string.append(out, "\n    where ");
+        for c: p.constraints {
+            if !#first do string.append(out, ", ");
+
+            string.append(out, c);
+        }
+    }
+
     string.append(out, "</code></pre>");
 
     source_destination := generate_link_from_source(p.location, docs);
@@ -332,7 +342,20 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
         string.append(out, ")");
     }
 
-    string.append(out, " {\n");
+    
+    if s.constraints {
+        string.append(out, "\n    where ");
+        for c: s.constraints {
+            if !#first do string.append(out, ", ");
+
+            string.append(out, c);
+        }
+
+        string.append(out, "\n{\n");
+    } else {
+        string.append(out, " {\n");
+    }
+
 
     for& member: s.members {
         string.append(out, "    ");
