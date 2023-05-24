@@ -196,6 +196,9 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
     enums := filter_and_sort(docs.enumerations, p);
     output_all(enums, output_enum_definition);
 
+    unions := filter_and_sort(docs.unions, p);
+    output_all(unions, output_union_definition);
+
     distincts := filter_and_sort(docs.distinct_types, p);
     output_all(distincts, output_distinct_definition);
 
@@ -215,6 +218,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
                 )
             )),
             iter.as_iter(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
+            iter.as_iter(unions)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
             iter.as_iter(distincts)->flat_map(x => iter.concat(
                 iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
                 iter.as_iter(x.methods)->map((m, [x]) =>
@@ -421,6 +425,61 @@ output_distinct_definition :: (docs: &doc.Doc, d: &doc.Doc_Distinct_Type, out: &
     string.append(out, "</div>");
 }
 
+output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
+    string.append(out, "<div class=\"source-definition\">");
+    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
+
+    conv.format(out, "{} :: union", u.name);
+
+    if u.polymorph_arguments {
+        string.append(out, " (");
+        for& p: u.polymorph_arguments {
+            if !#first do string.append(out, ", ");
+
+            conv.format(out, "{}: {}", p.name, p.type);
+        }
+        string.append(out, ")");
+    }
+
+    
+    if u.constraints {
+        string.append(out, "\n    where ");
+        for c: u.constraints {
+            if !#first do string.append(out, ", ");
+
+            string.append(out, c);
+        }
+
+        string.append(out, "\n{\n");
+    } else {
+        string.append(out, " {\n");
+    }
+
+
+    for& variant: u.variants {
+        string.append(out, "    ");
+        string.append(out, variant.name);
+        string.append(out, ": ");
+        string.append(out, variant.type);
+        string.append(out, ";\n");
+    }
+
+    string.append(out, "}");
+    string.append(out, "</code></pre>");
+
+    source_destination := generate_link_from_source(u.location, docs);
+    string.append(out, "<div class=\"source-link\">");
+    conv.format(out, "<a href=\"{}\">source</a>", source_destination);
+    string.append(out, "</div>");
+
+    output_entity_description(u, out);
+    string.append(out, "</div>");
+
+    array.sort(u.methods, (x, y) => string.compare(x.name, y.name));
+
+    output_method_list(docs, u.methods, u.name, out);
+}
+
 output_method_list :: (docs: &doc.Doc, methods: [] doc.Doc_Procedure, name: str, out: &dyn_str) {
     if methods {
         string.append(out, "<div class=\"method-header accordion-toggle\">Methods</div>");
@@ -517,7 +576,7 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
 """);
 
     Index_Entry :: struct {
-        Type :: enum { Proc; Struct; Method; Enum; }
+        Type :: enum { Proc; Struct; Method; Enum; Union; }
         type: Type;
         name: str;
         visibility: doc.Doc_Visibility;
@@ -533,6 +592,7 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
             )
         )),
         iter.as_iter(docs.enumerations)->map(x => Index_Entry.{ .Enum, x.name, x.visibility, x.package_id }),
+        iter.as_iter(docs.unions)->map(x => Index_Entry.{ .Union, x.name, x.visibility, x.package_id }),
         iter.as_iter(docs.distinct_types)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
             iter.as_iter(x.methods)->map((m, [x]) =>
