@@ -182,7 +182,7 @@ generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
 generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn_str) {
     conv.format(output, "<h2>Package {}</h2>", p.qualified_name);
 
-    output_all :: macro (arr, f) => {
+    output_all :: macro (arr: $T, f: $F) {
         for arr {
             output_entity_header(docs, it, output);
             f(docs, it, output);
