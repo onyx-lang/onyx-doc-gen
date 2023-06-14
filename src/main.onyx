@@ -218,7 +218,12 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
                 )
             )),
             iter.as_iter(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
-            iter.as_iter(unions)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
+            iter.as_iter(unions)->flat_map(x => iter.concat(
+                iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
+                iter.as_iter(x.methods)->map((m, [x]) =>
+                    SidebarSymbol.{ m.name, tprintf("{}.{}", x.name, m.name), 1 }
+                )
+            )),
             iter.as_iter(distincts)->flat_map(x => iter.concat(
                 iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
                 iter.as_iter(x.methods)->map((m, [x]) =>
@@ -592,7 +597,12 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
             )
         )),
         iter.as_iter(docs.enumerations)->map(x => Index_Entry.{ .Enum, x.name, x.visibility, x.package_id }),
-        iter.as_iter(docs.unions)->map(x => Index_Entry.{ .Union, x.name, x.visibility, x.package_id }),
+        iter.as_iter(docs.unions)->flat_map(x => iter.concat(
+            iter.single(Index_Entry.{ .Union, x.name, x.visibility, x.package_id }),
+            iter.as_iter(x.methods)->map((m, [x]) =>
+                Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
+            )
+        )),
         iter.as_iter(docs.distinct_types)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
             iter.as_iter(x.methods)->map((m, [x]) =>
