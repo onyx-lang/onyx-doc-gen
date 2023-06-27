@@ -10,29 +10,49 @@ generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
         string.advance(docs.files[s.file_id].name, "/usr/share/onyx".count),
         s.line);
 
+ignored_packages: [..] str;
+should_ignore_package :: (s: str) =>
+    slice.some(ignored_packages, [prefix](string.starts_with(s, prefix)));
+
 main :: (args: [] cstr) {
     if args.length == 0 {
         eprintf("""Usage:
-    onyx-doc-gen <file.odoc> [output_folder=generated] [index_file]\n""");
+    onyx-doc-gen <file.odoc> [--ignore-pkgs=...] [--output=generated] [--index=index_file]\n""");
         os.exit(1);
     }
 
     index_file := "";
+    destination_folder := "generated";
+
+    args_iter := iter.as_iter(args)->map(x => string.as_str(x));
     
-    odoc_file := string.as_str(args[0]);
+    odoc_file := iter.next(args_iter);
     contents  := os.get_contents(odoc_file);
     if !contents {
         eprintf("""Failed to read contents of '{}'.\n""", odoc_file);
         os.exit(1);
     }
 
-    destination_folder := "generated";
-    if args.length > 1 {
-        destination_folder = string.as_str(args[1]);
-    }
+    for args_iter {
+        key, value := string.bisect(it, "=");
+        switch key {
+            case "--ignore-pkgs" {
+                array.concat(&ignored_packages, string.split(value, ','));
+            }
 
-    if args.count > 2 {
-        index_file = string.as_str(args[2]);
+            case "--output" {
+                destination_folder = value;
+            }
+
+            case "--index" {
+                index_file = value;
+            }
+
+            case #default {
+                eprintf("Unknown argument: '{}'\n", it);
+                os.exit(1);
+            }
+        }
     }
 
     maybe_docs := osad.deserialize(doc.Doc, contents);
@@ -66,6 +86,11 @@ generate_docs :: (docs: &doc.Doc, destination_folder: str) {
     os.dir_create(package_folder);
 
     for& p: docs.packages {
+        if should_ignore_package(p.qualified_name) {
+            log(.Info, tprintf("Ignoring '{}'", p.qualified_name));
+            continue;
+        }
+
         for os.with_file(tprintf("{}/{}.html", package_folder, p.qualified_name), .Write) {
             output: dyn_str;
             generate_html_file_start(docs, &output, tprintf("Package {}", p.qualified_name), ~~p.id);
@@ -527,6 +552,10 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
     return output;
 
     recurse :: (docs: &doc.Doc, dest: &dyn_str, p: &doc.Doc_Package, active_package: doc.Doc_Package.Id) {
+        if should_ignore_package(p.qualified_name) {
+            return;
+        }
+
         conv.format(dest,
             "<a href=\"/packages/{}.html\"><div class=\"item {}\">{}</div></a>",
             p.qualified_name,
@@ -536,9 +565,7 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
         if p.subpackages {
             string.append(dest, "<div class=\"container\">");
 
-            context->set_user_data(docs);
-            array.sort(p.subpackages, (x, y) => {
-                docs := context->get_user_data(doc.Doc);
+            array.sort(p.subpackages, (x, y, [docs]) => {
                 return string.compare(docs.packages[~~x].name, docs.packages[~~y].name);
             });
 
@@ -614,6 +641,8 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
 
     for sym: symbols {
         pack := docs.packages[sym.package_id];
+        if should_ignore_package(pack.qualified_name) do continue;
+
         string.append(&output, "{");
         conv.format(&output,"\"type\":\"{}\",", sym.type);
         conv.format(&output,"\"package\":\"{}\",", pack.qualified_name);
