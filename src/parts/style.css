@@ -7,19 +7,20 @@
 }
 
 html.dark-mode {
-    --navbar-background: #111116;
+    --navbar-background: #222;
     --navbar-color: #ffffff;
     --navbar-height: 42px;
-    --navbar-search-background: #9999aa;
-    --navbar-search-color: #000000;
-    --navbar-search-hover-background: #bbbbc4;
+    --navbar-search-background: #333;
+    --navbar-search-color: #ccc;
+    --navbar-search-hover-background: #555;
 
-    --main-background: #222228;
+    --main-background: #222;
     --main-color: #ffffff;
     --main-top-padding: 14px;
     --main-separator-color: #444444;
     --main-target-color: #333333;
-    --main-code-color: #2f2f33;
+    --main-code-color: #070707;
+    --main-entity-name-color: #9090ff;
 }
 
 html.light-mode {
@@ -35,7 +36,8 @@ html.light-mode {
     --main-top-padding: 14;
     --main-separator-color: #cccccc;
     --main-target-color: #dddddd;
-    --main-code-color: #bfbfcc;
+    --main-code-color: #e7e7ff;
+    --main-entity-name-color: #070799;
 }
 
 html {
@@ -60,8 +62,7 @@ navbar {
     color: var(--navbar-color);
 
     z-index: 100;
-    box-shadow: 0px -1px 2px 2px black;
-
+    box-shadow: 0px -1px 2px 2px rgba(0, 0, 0, 0.2);
 }
 
 navbar .toggle-colors {
@@ -95,6 +96,7 @@ navbar .searchbar {
 
 navbar .searchbar .search-container {
     border: 1px solid var(--main-separator-color);
+    border-radius: 2px;
     width: 60%;
     height: 80%;
     position: relative;
@@ -103,14 +105,15 @@ navbar .searchbar .search-container {
 navbar .searchbar input {
     flex-grow: 1;
 
-    font-size: 1.5rem;
-    font-family: monospace;
+    font-size: 1rem;
+    font-family: fira, monospace;
         
     outline: none;
     border: none;
-    padding: 2px;
+    padding: 6px;
     display: block;
     width: 100%;
+    border-radius: 2px;
 
     background-color: var(--navbar-search-background);
     color: var(--navbar-search-color);
@@ -183,7 +186,7 @@ navbar .search-results li .search-result-badge {
 navbar .search-results li .search-result-name {
     font-weight: 600;
     font-size: 1.2rem;
-    font-family: monospace;
+    font-family: fira, monospace;
     padding: 4px;
 }
 
@@ -201,7 +204,7 @@ navbar .links {
 main {
     min-height: calc(100vh - var(--navbar-height));
     display: grid;
-    grid-template-columns: var(--left-panel-width) 4px calc(100% - 8px - var(--left-panel-width) - var(--right-panel-width)) 4px var(--right-panel-width);
+    grid-template-columns: var(--left-panel-width) 4px calc(100% - 4px - var(--left-panel-width) - var(--right-panel-width)) 4px var(--right-panel-width);
     grid-template-rows: auto;
     grid-template-areas: "project main symbols";
     position: relative;
@@ -237,6 +240,7 @@ main .package-sidebar .item {
     font-size: 1.2rem;
     padding-left: 8px;
     text-decoration: none !important;
+    font-family: fira, monospace;
 }
 
 main .package-sidebar .item.active {
@@ -286,9 +290,9 @@ main .main-view *:target {
     animation: flash 3s;
 }
 
-main .main-view .package-entry:not(:first-child) {
+/* main .main-view .package-entry:not(:first-child) {
     border-top: 1px solid var(--main-separator-color);
-}
+} */
 
 main .main-view .package-entry .entry-header {
     display: flex;
@@ -298,7 +302,7 @@ main .main-view .package-entry .entry-header {
 main .main-view .package-entry .entry-header .visibility-badge {
     color: var(--main-background);
     background-color: var(--main-color);
-    border-radius: 4px;
+    border-radius: 2px;
     padding: 4px;
     margin-right: 4px;
     text-transform: lowercase;
@@ -306,7 +310,7 @@ main .main-view .package-entry .entry-header .visibility-badge {
 
 main .main-view .package-entry .entry-header .entry-source {
     background-color: var(--navbar-search-background);
-    border-radius: 4px;
+    border-radius: 2px;
     padding: 4px;
 }
 
@@ -316,6 +320,7 @@ main .main-view .package-entry .entry-header .entry-source a {
 
 main .main-view .package-entry .description-container {
     margin-top: 10px;
+    padding-left: 4px;
 }
 
 main .main-view .package-entry .description-container p {
@@ -332,8 +337,8 @@ main .main-view .package-entry .description-container *:not(pre) code
 {
     padding: 2px;
     background-color: var(--main-code-color);
-    border-radius: 4px;
-    font-family: monospace;
+    border-radius: 2px;
+    font-family: fira, monospace;
 }
 
 main .main-view .package-entry .description-container pre {
@@ -341,7 +346,7 @@ main .main-view .package-entry .description-container pre {
 }
 
 main .main-view .entry-name {
-    font-family: monospace;
+    font-family: fira, monospace;
     font-weight: 700;
     font-size: 1.2rem;
 }
@@ -367,13 +372,13 @@ main .main-view .method-header:hover {
 
 main .main-view .method-header + * {
     padding: 16px 0 16px 16px;
-    border-left: 16px solid var(--main-separator-color);
+    /* border-left: 8px solid var(--main-separator-color); */
 }
 
 main .main-view .method-header + * > *:not(:first-child) {
-    border-top: 1px solid var(--main-separator-color);
+    /* border-top: 1px solid var(--main-separator-color); */
     margin: 8px 0;
-    padding: 16px 0;
+    padding: 8px 0;
 }
 
 main .main-view .accordion-toggle + * {
@@ -392,8 +397,9 @@ main .main-view pre {
     margin-right: 4px;
     padding: 4px;
 
-    border-radius: 6px;
-    box-shadow: 0px 1px 2px 1px rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
+    /* box-shadow: 0px 1px 2px 1px rgba(0, 0, 0, 0.2); */
+    font-weight: 700;
 
     overflow-x: auto;
 }
@@ -402,8 +408,13 @@ main .main-view .package-entry a {
     text-decoration: none;
 }
 
+main .main-view .package-entry a.entity-name {
+    text-decoration: underline;
+    color: var(--main-entity-name-color);
+}
+
 main .main-view pre * {
-    font-family: "Courier New";
+    font-family: fira, monospace;
 }
 
 main .main-view .source-definition {
@@ -414,7 +425,7 @@ main .main-view .source-definition .source-link {
     position: absolute;
     top: 0;
     right: 0;
-    font-size: 1rem;
+    font-size: 0.7rem;
 
     opacity: 0;
     transition: opacity 100ms;
@@ -452,16 +463,18 @@ main .symbol-sidebar h2 {
 
 main .symbol-sidebar a {
     text-decoration: none;
-    color: var(--navbar-search-background);
+    color: var(--main-color);
 }
 
 main .symbol-sidebar a * {
     text-decoration: none;
+    font-family: fira, monospace;
 }
 
 main .symbol-sidebar a:visited .symbol-link {
     text-decoration: none;
-    color: var(--navbar-search-background);
+    color: var(--main-color);
+    font-family: fira, monospace;
 }
 
 main .symbol-sidebar a .symbol-link {
@@ -474,7 +487,7 @@ main .symbol-sidebar a:hover .symbol-link {
 
 
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 2px;
 }
  
 ::-webkit-scrollbar-thumb {
@@ -506,3 +519,7 @@ footer.container.dark {
     padding: 20px 0;
 }
 
+@font-face {
+    font-family: fira;
+    src: url(FiraCode-Regular.woff);
+}

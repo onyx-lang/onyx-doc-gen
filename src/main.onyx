@@ -6,7 +6,7 @@ use core.encoding {osad}
 use markdown
 
 generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
-    tprintf("https://github.com/onyx-lang/onyx/tree/docgen{}#L{}",
+    tprintf("https://github.com/onyx-lang/onyx/tree/master{}#L{}",
         string.advance(docs.files[s.file_id].name, "/usr/share/onyx".count),
         s.line);
 
@@ -154,6 +154,10 @@ generate_static_folder :: (destination_folder: str) {
     for os.with_file(tprintf("{}/script.js", static_folder), .Write) {
         io.stream_write(it, #file_contents "./parts/script.js");
     }
+
+    for os.with_file(tprintf("{}/FiraCode-Regular.woff", static_folder), .Write) {
+        io.stream_write(it, #file_contents "./parts/FiraCode-Regular.woff");
+    }
 }
 
 generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selected_package_id := -1) {
@@ -196,7 +200,10 @@ generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
 
     string.append(output, """
 <script>
-    window.addEventListener("load", () => hljs.highlightAll());
+    window.addEventListener("load", () => {
+        hljs.configure({ cssSelector: 'pre.hljs code' })
+        hljs.highlightAll();
+    });
 </script>""");
 
     string.append(output, build_json_index_script_tag(docs));
@@ -209,8 +216,17 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
 
     output_all :: macro (arr: $T, f: $F) {
         for arr {
+            // HACK
+            #if T == [] &doc.Doc_Procedure {
+                if it.flags & .Is_Overloaded {
+                    f(docs, it, output);
+                    continue;
+                }
+            }
+
             output_entity_header(docs, it, output);
             f(docs, it, output);
+            output_entity_description(it, output);
             string.append(output, "</div>");
         }
     }
@@ -278,30 +294,33 @@ filter_and_sort :: (arr: [] $T, p: &doc.Doc_Package) -> [] &T {
 
 output_entity_header :: (docs: &doc.Doc, ent: &doc.Doc_Entity, output: &dyn_str) {
     conv.format(output, "<div id=\"{}\" class=\"package-entry\">", ent.name);
-    string.append(output, "<div class=\"entry-header\">");
+    // string.append(output, "<div class=\"entry-header\">");
 
-    string.append(output, "<div>");
-    if ent.visibility != .Public {
-        conv.format(output, "<span class=\"visibility-badge\">#{}</span>", ent.visibility);
-    }
-    conv.format(output, "<span class=\"entry-name\">{}</span>", ent.name);
-    string.append(output, "</div>");
+    // string.append(output, "<div>");
+    // if ent.visibility != .Public {
+    //     conv.format(output, "<span class=\"visibility-badge\">#{}</span>", ent.visibility);
+    // }
+    // conv.format(output, "<span class=\"entry-name\">{}</span>", ent.name);
+    // string.append(output, "</div>");
 
-    conv.format(output, "<span class=\"entry-source\"><a href=\"{}\">source</a></span>", generate_link_from_source(ent.location, docs));
-    string.append(output, "</div>");
+    // conv.format(output, "<span class=\"entry-source\"><a href=\"{}\">source</a></span>", generate_link_from_source(ent.location, docs));
+    // string.append(output, "</div>");
+}
+
+output_entity_name_link :: (docs: &doc.Doc, ent: &doc.Doc_Entity, output: &dyn_str) {
+    conv.format(output, "<a class=\"entity-name\" href=\"{}\">{}</a>",
+        generate_link_from_source(ent.location, docs),
+        ent.name);
 }
 
 output_entity_description :: (ent: &doc.Doc_Entity, output: &dyn_str) {
+    if !ent.notes do return;
+
     string.append(output, "<div class=\"description-container\">");
-    if !ent.notes {
-        // string.append(output, "<i>No documentation provided.</i>");
-    } else {
-        generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(ent.notes));
-        defer delete(&generated_markup);
+    generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(ent.notes));
+    defer delete(&generated_markup);
 
-        string.append(output, generated_markup);
-    }
-
+    string.append(output, generated_markup);
     string.append(output, "</div>");
 }
 
@@ -309,20 +328,25 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
     if p.flags & .Is_Overloaded {
         for& it: p.overloads {
             it.name = p.name;
-            output_procedure_definition(docs, it, out);
-        }
 
-        string.append(out, "<div class=\"source-definition\">");
-        output_entity_description(p, out);
-        string.append(out, "</div>");
+            if it.flags & .Is_Overloaded {
+                output_procedure_definition(docs, it, out);
+                continue;
+            }
+
+            output_entity_header(docs, it, out);
+            output_procedure_definition(docs, it, out);
+            output_entity_description(it, out);
+            string.append(out, "</div>");
+        }
         return;
     }
 
     string.append(out, "<div class=\"source-definition\">");
-    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
+    conv.format(out, "<pre><code>");
 
-    conv.format(out, "{} :: {}(",
-        p.name,
+    output_entity_name_link(docs, p, out);
+    conv.format(out, " :: {}(",
         "macro " if p.flags&.Is_Macro else "");
 
     for& param: p.params {
@@ -348,21 +372,15 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
 
     string.append(out, "</code></pre>");
 
-    source_destination := generate_link_from_source(p.location, docs);
-    string.append(out, "<div class=\"source-link\">");
-    conv.format(out, "<a href=\"{}\">source</a>", source_destination);
     string.append(out, "</div>");
-
-    string.append(out, "</div>");
-
-    output_entity_description(p, out);
 }
 
 output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_str) {
     string.append(out, "<div class=\"source-definition\">");
-    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
+    conv.format(out, "<pre><code>");
 
-    conv.format(out, "{} :: struct", s.name);
+    output_entity_name_link(docs, s, out);
+    string.append(out, " :: struct");
 
     if s.polymorph_arguments {
         string.append(out, " (");
@@ -403,12 +421,6 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
     string.append(out, "}");
     string.append(out, "</code></pre>");
 
-    source_destination := generate_link_from_source(s.location, docs);
-    string.append(out, "<div class=\"source-link\">");
-    conv.format(out, "<a href=\"{}\">source</a>", source_destination);
-    string.append(out, "</div>");
-
-    output_entity_description(s, out);
     string.append(out, "</div>");
 
     array.sort(s.methods, (x, y) => string.compare(x.name, y.name));
@@ -418,9 +430,10 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
 
 output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
     string.append(out, "<div class=\"source-definition\">");
-    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
+    conv.format(out, "<pre><code>");
 
-    conv.format(out, "{} :: enum {}{\n", e.name, "#flags " if e.flags&.Is_Flags else "");
+    output_entity_name_link(docs, e, out);
+    conv.format(out, " :: enum {}{\n", "#flags " if e.flags&.Is_Flags else "");
 
     for& value: e.values {
         string.append(out, "    ");
@@ -432,20 +445,15 @@ output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
     string.append(out, "}");
     string.append(out, "</code></pre>");
 
-    source_destination := generate_link_from_source(e.location, docs);
-    string.append(out, "<div class=\"source-link\">");
-    conv.format(out, "<a href=\"{}\">source</a>", source_destination);
     string.append(out, "</div>");
 
-    string.append(out, "</div>");
-
-    output_entity_description(e, out);
 }
 
 output_distinct_definition :: (docs: &doc.Doc, d: &doc.Doc_Distinct_Type, out: &dyn_str) {
     string.append(out, "<div class=\"source-definition\">");
-    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
-    conv.format(out, "{} :: #distinct {}", d.name, d.wrapped_type);
+    conv.format(out, "<pre><code>");
+    output_entity_name_link(docs, d, out);
+    conv.format(out, " :: #distinct {}", d.wrapped_type);
     string.append(out, "</code></pre>");
 
     array.sort(d.methods, (x, y) => string.compare(x.name, y.name));
@@ -457,9 +465,10 @@ output_distinct_definition :: (docs: &doc.Doc, d: &doc.Doc_Distinct_Type, out: &
 
 output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
     string.append(out, "<div class=\"source-definition\">");
-    conv.format(out, "<pre class=\"hljs language-onyx\"><code>");
+    conv.format(out, "<pre><code>");
 
-    conv.format(out, "{} :: union", u.name);
+    output_entity_name_link(docs, u, out);
+    string.append(out, " :: union");
 
     if u.polymorph_arguments {
         string.append(out, " (");
@@ -497,12 +506,6 @@ output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
     string.append(out, "}");
     string.append(out, "</code></pre>");
 
-    source_destination := generate_link_from_source(u.location, docs);
-    string.append(out, "<div class=\"source-link\">");
-    conv.format(out, "<a href=\"{}\">source</a>", source_destination);
-    string.append(out, "</div>");
-
-    output_entity_description(u, out);
     string.append(out, "</div>");
 
     array.sort(u.methods, (x, y) => string.compare(x.name, y.name));
@@ -516,13 +519,21 @@ output_method_list :: (docs: &doc.Doc, methods: [] doc.Doc_Procedure, name: str,
 
         string.append(out, "<div>");
         for &method: methods {
-            conv.format(out, "<div id=\"{}.{}\">", name, method.name);
 
-            output_entity_header(docs, method, out);
-            output_procedure_definition(docs, method, out);
-
-            string.append(out, "</div>");
-            string.append(out, "</div>");
+            if method.flags & .Is_Overloaded {
+                for& method.overloads {
+                    it.name = method.name;
+                    conv.format(out, "<div id=\"{}.{}\">", name, method.name);
+                    output_procedure_definition(docs, it, out);
+                    string.append(out, "</div>");
+                }
+            } else {
+                output_entity_header(docs, method, out);
+                conv.format(out, "<div id=\"{}.{}\">", name, method.name);
+                output_procedure_definition(docs, method, out);
+                string.append(out, "</div>");
+                string.append(out, "</div>");
+            }
         }
         string.append(out, "</div>");
     }
