@@ -212,7 +212,7 @@ generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
 }
 
 generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn_str) {
-    conv.format(output, "<h2>Package {}</h2>", p.qualified_name);
+    conv.format(output, "<h2><pre><span style=\"color: #99f\">package</span> <span>{}</span></pre></h2>", p.qualified_name);
 
     output_all :: macro (arr: $T, f: $F) {
         for arr {
@@ -226,7 +226,6 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
 
             output_entity_header(docs, it, output);
             f(docs, it, output);
-            output_entity_description(it, output);
             string.append(output, "</div>");
         }
     }
@@ -373,6 +372,8 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
     string.append(out, "</code></pre>");
 
     string.append(out, "</div>");
+
+    output_entity_description(p, out);
 }
 
 output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_str) {
@@ -423,8 +424,9 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
 
     string.append(out, "</div>");
 
-    array.sort(s.methods, (x, y) => string.compare(x.name, y.name));
+    output_entity_description(s, out);
 
+    array.sort(s.methods, (x, y) => string.compare(x.name, y.name));
     output_method_list(docs, s.methods, s.name, out);
 }
 
@@ -447,6 +449,7 @@ output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
 
     string.append(out, "</div>");
 
+    output_entity_description(e, out);
 }
 
 output_distinct_definition :: (docs: &doc.Doc, d: &doc.Doc_Distinct_Type, out: &dyn_str) {
@@ -456,11 +459,12 @@ output_distinct_definition :: (docs: &doc.Doc, d: &doc.Doc_Distinct_Type, out: &
     conv.format(out, " :: #distinct {}", d.wrapped_type);
     string.append(out, "</code></pre>");
 
-    array.sort(d.methods, (x, y) => string.compare(x.name, y.name));
-
-    output_method_list(docs, d.methods, d.name, out);
-
     string.append(out, "</div>");
+
+    output_entity_description(d, out);
+
+    array.sort(d.methods, (x, y) => string.compare(x.name, y.name));
+    output_method_list(docs, d.methods, d.name, out);
 }
 
 output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
@@ -508,8 +512,9 @@ output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
 
     string.append(out, "</div>");
 
-    array.sort(u.methods, (x, y) => string.compare(x.name, y.name));
+    output_entity_description(u, out);
 
+    array.sort(u.methods, (x, y) => string.compare(x.name, y.name));
     output_method_list(docs, u.methods, u.name, out);
 }
 
