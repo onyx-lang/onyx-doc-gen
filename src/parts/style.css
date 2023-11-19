@@ -204,7 +204,7 @@ navbar .links {
 main {
     min-height: calc(100vh - var(--navbar-height));
     display: grid;
-    grid-template-columns: var(--left-panel-width) 4px calc(100% - 4px - var(--left-panel-width) - var(--right-panel-width)) 4px var(--right-panel-width);
+    grid-template-columns: var(--left-panel-width) 4px calc(100% - 8px - var(--left-panel-width) - var(--right-panel-width)) 4px var(--right-panel-width);
     grid-template-rows: auto;
     grid-template-areas: "project main symbols";
     position: relative;
