@@ -20,7 +20,7 @@ html.dark-mode {
     --main-separator-color: #444444;
     --main-target-color: #333333;
     --main-code-color: #070707;
-    --main-entity-name-color: #b8b8ff;
+    --main-entity-name-color: #9090ff;
 }
 
 html.light-mode {
@@ -365,10 +365,10 @@ main .main-view .method-header {
     transition: all 200ms;
 }
 
-main .main-view .method-header:hover {
+/* main .main-view .method-header:hover {
     cursor: pointer;
     background-color: var(--main-separator-color);
-}
+} */
 
 main .main-view .method-header + * {
     padding: 16px 0 16px 16px;
