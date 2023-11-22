@@ -6,31 +6,28 @@
     font-family: sans-serif;
 }
 
-html.dark-mode {
-    --navbar-background: #171717;
+:root {
+    font-size: 20px;
+
+    --navbar-background: #303033;
     --navbar-color: #ffffff;
     --navbar-height: 42px;
-    --navbar-search-background: #333;
-    --navbar-search-color: #ccc;
+    --navbar-search-background: #404044;
+    --navbar-search-color: #ddd;
     --navbar-search-hover-background: #555;
+}
 
-    --main-background: #222;
+html.dark-mode {
+    --main-background: #101016;
     --main-color: #ffffff;
     --main-top-padding: 14px;
-    --main-separator-color: #444444;
-    --main-target-color: #333333;
+    --main-separator-color: #444448;
+    --main-target-color: #303033;
     --main-code-color: #070707;
     --main-entity-name-color: #9090ff;
 }
 
 html.light-mode {
-    --navbar-background: #eeeef5;
-    --navbar-color: #000000;
-    --navbar-height: 42px;
-    --navbar-search-background: #9999aa;
-    --navbar-search-color: #000000;
-    --navbar-search-hover-background: #bbbbc4;
-
     --main-background: #ffffff;
     --main-color: #000000;
     --main-top-padding: 14;
@@ -95,7 +92,6 @@ navbar .searchbar {
 }
 
 navbar .searchbar .search-container {
-    border: 1px solid var(--main-separator-color);
     border-radius: 2px;
     width: 60%;
     height: 80%;
@@ -204,9 +200,9 @@ navbar .links {
 main {
     min-height: calc(100vh - var(--navbar-height));
     display: grid;
-    grid-template-columns: var(--left-panel-width) 4px calc(100% - 8px - var(--left-panel-width) - var(--right-panel-width)) 4px var(--right-panel-width);
+    grid-template-columns: var(--left-panel-width) 4px calc(100% - 8px - var(--left-panel-width) - var(--right-panel-width));
     grid-template-rows: auto;
-    grid-template-areas: "project main symbols";
+    grid-template-areas: "project main";
     position: relative;
 }
 
@@ -227,7 +223,7 @@ main .package-sidebar {
     height: 100vh;
     overflow-y: auto;
 
-    background-color: var(--navbar-background);
+    background-color: var(--main-background);
     text-decoration: none;
 }
 
@@ -237,10 +233,10 @@ main .package-sidebar h2 {
 }
 
 main .package-sidebar .item {
-    font-size: 1.2rem;
+    font-size: 1rem;
     padding-left: 8px;
     text-decoration: none !important;
-    font-family: fira, monospace;
+    /* font-family: fira, monospace; */
 }
 
 main .package-sidebar .item.active {
@@ -269,6 +265,11 @@ main .main-view {
 
 main .main-view h2 {
     padding-left: 8px;
+}
+
+main .main-view .package-description {
+    margin: 8px;
+    padding: 16px;
 }
 
 main .main-view > .package-entry {
@@ -323,17 +324,20 @@ main .main-view .package-entry .description-container {
     padding-left: 4px;
 }
 
-main .main-view .package-entry .description-container p {
+main .main-view .package-entry .description-container p, .package-description p {
     margin-top: 10px;
 }
 
 main .main-view .package-entry .description-container pre,
-main .main-view .package-entry .description-container pre code
+main .main-view .package-entry .description-container pre code,
+.package-description pre,
+.package-description pre code
 {
     background-color: var(--main-code-color);
 }
 
 main .main-view .package-entry .description-container *:not(pre) code
+.package-description *:not(pre) code
 {
     padding: 2px;
     background-color: var(--main-code-color);
@@ -341,7 +345,9 @@ main .main-view .package-entry .description-container *:not(pre) code
     font-family: fira, monospace;
 }
 
-main .main-view .package-entry .description-container pre {
+main .main-view .package-entry .description-container pre,
+.package-description pre
+{
     box-shadow: 0px 1px 2px 1px rgba(0, 0, 0, 0.2);
 }
 

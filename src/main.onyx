@@ -7,7 +7,7 @@ use markdown
 
 generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
     tprintf("https://github.com/onyx-lang/onyx/tree/master{}#L{}",
-        string.advance(docs.files[s.file_id].name, "/usr/share/onyx".count),
+        string.advance(docs.files[s.file_id].name, os.env("ONYX_PATH")->unwrap().count),
         s.line);
 
 ignored_packages: [..] str;
@@ -158,6 +158,10 @@ generate_static_folder :: (destination_folder: str) {
     for os.with_file(tprintf("{}/FiraCode-Regular.woff", static_folder), .Write) {
         io.stream_write(it, #file_contents "./parts/FiraCode-Regular.woff");
     }
+
+    for os.with_file(tprintf("{}/favicon.ico", static_folder), .Write) {
+        io.stream_write(it, #file_contents "./parts/favicon.ico");
+    }
 }
 
 generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selected_package_id := -1) {
@@ -168,6 +172,8 @@ generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selec
 
         <link rel="stylesheet" href="/static/highlight.min.css" />
         <link rel="stylesheet" href="/static/style.css" />
+        <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+
         <script src="/static/fuse.js"></script> 
         <script src="/static/highlight.min.js"></script>
         <script src="/static/script.js"></script>
@@ -213,6 +219,15 @@ generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
 
 generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn_str) {
     conv.format(output, "<h2><pre><span style=\"color: #99f\">package</span> <span>{}</span></pre></h2>", p.qualified_name);
+
+    for p.notes {
+        string.append(output, "<div class=\"package-description\">");
+        generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(it));
+        defer delete(&generated_markup);
+
+        string.append(output, generated_markup);
+        string.append(output, "</div>");
+    }
 
     output_all :: macro (arr: $T, f: $F) {
         for arr {
@@ -600,6 +615,7 @@ SidebarSymbol :: struct {
 }
 
 build_symbol_sidebar :: (symbols: Iterator(SidebarSymbol), output: &dyn_str) {
+    return;
     string.append(output, "<div class=\"symbol-sidebar\">");
     string.append(output, "<h2>Symbols</h2>");
 
