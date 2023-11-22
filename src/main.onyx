@@ -520,7 +520,7 @@ output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
 
 output_method_list :: (docs: &doc.Doc, methods: [] doc.Doc_Procedure, name: str, out: &dyn_str) {
     if methods {
-        string.append(out, "<div class=\"method-header accordion-toggle\">Methods</div>");
+        string.append(out, "<div class=\"method-header\">Methods</div>");
 
         string.append(out, "<div>");
         for &method: methods {

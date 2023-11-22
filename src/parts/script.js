@@ -72,27 +72,27 @@ window.addEventListener("load", function () {
         set_colors("light");
     }
 
-    document.querySelectorAll(".accordion-toggle").forEach((elem) => {
-        elem.classList.add("active");
-        elem.addEventListener("click", () => {
-            elem.classList.toggle("active");
+    // document.querySelectorAll(".accordion-toggle").forEach((elem) => {
+    //     elem.classList.add("active");
+    //     elem.addEventListener("click", () => {
+    //         elem.classList.toggle("active");
 
-            let panel = elem.nextElementSibling;
-            if (panel.style.maxHeight) {
-                panel.style.maxHeight = null;
-            } else {
-                panel.style.maxHeight = panel.scrollHeight + "px";
-            }
-        });
+    //         let panel = elem.nextElementSibling;
+    //         if (panel.style.maxHeight) {
+    //             panel.style.maxHeight = null;
+    //         } else {
+    //             panel.style.maxHeight = panel.scrollHeight + "px";
+    //         }
+    //     });
 
-        let panel = elem.nextElementSibling;
+    //     let panel = elem.nextElementSibling;
 
-        // Wow this code is hacky. I hope no one ever reads this...
-        // I guess this is what I get for programming Javascript as an Onyx programmer.
-        setTimeout(() => {
-            panel.style.maxHeight = panel.scrollHeight + "px";
-        }, 0);
-    });
+    //     // Wow this code is hacky. I hope no one ever reads this...
+    //     // I guess this is what I get for programming Javascript as an Onyx programmer.
+    //     setTimeout(() => {
+    //         panel.style.maxHeight = panel.scrollHeight + "px";
+    //     }, 0);
+    // });
 
     let fuse = new Fuse(window.PACKAGE_INDEX, {
         keys: ['name', 'package_name']
