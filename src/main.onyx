@@ -232,7 +232,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
     output_all :: macro (arr: $T, f: $F) {
         for arr {
             // HACK
-            #if T == [] &doc.Doc_Procedure {
+            #if T == [] &doc.Doc_Procedure && false {
                 if it.flags & .Is_Overloaded {
                     f(docs, it, output);
                     continue;
@@ -353,6 +353,7 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
             output_entity_description(it, out);
             string.append(out, "</div>");
         }
+        output_entity_description(p, out);
         return;
     }
 
