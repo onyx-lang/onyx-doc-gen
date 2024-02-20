@@ -18,7 +18,7 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
         state = .Base
     };
 
-    for line: lines {
+    for line in lines {
         // Check for heading.
         if string.starts_with(line, "#") {
             flush_state_to_base(&state, &output);
@@ -285,7 +285,7 @@ set_translator_state :: (state: &Translator_State, out: &dyn_str, s: Translator_
 indent_markdown_deindent :: (s_: str) -> Iterator(str) {
     s := s_;
     whitespace_count := 0;
-    for c: s_ {
+    for c in s_ {
         if c == '\t' {
             whitespace_count += 1;
         }

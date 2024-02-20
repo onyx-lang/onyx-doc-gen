@@ -85,7 +85,7 @@ generate_docs :: (docs: &doc.Doc, destination_folder: str) {
     log(.Info, tprintf("Creating '{}'.", package_folder));
     os.dir_create(package_folder);
 
-    for& p: docs.packages {
+    for& p in docs.packages {
         if should_ignore_package(p.qualified_name) {
             log(.Info, tprintf("Ignoring '{}'", p.qualified_name));
             continue;
@@ -340,7 +340,7 @@ output_entity_description :: (ent: &doc.Doc_Entity, output: &dyn_str) {
 
 output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn_str) {
     if p.flags & .Is_Overloaded {
-        for& it: p.overloads {
+        for& it in p.overloads {
             it.name = p.name;
 
             if it.flags & .Is_Overloaded {
@@ -364,7 +364,7 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
     conv.format(out, " :: {}(",
         "macro " if p.flags&.Is_Macro else "");
 
-    for& param: p.params {
+    for& param in p.params {
         if !#first do string.append(out, ", ");
 
         string.append(out, param.name);
@@ -378,7 +378,7 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
 
     if p.constraints {
         string.append(out, "\n    where ");
-        for c: p.constraints {
+        for c in p.constraints {
             if !#first do string.append(out, ", ");
 
             string.append(out, c);
@@ -401,7 +401,7 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
 
     if s.polymorph_arguments {
         string.append(out, " (");
-        for& p: s.polymorph_arguments {
+        for& p in s.polymorph_arguments {
             if !#first do string.append(out, ", ");
 
             conv.format(out, "{}: {}", p.name, p.type);
@@ -412,7 +412,7 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
     
     if s.constraints {
         string.append(out, "\n    where ");
-        for c: s.constraints {
+        for c in s.constraints {
             if !#first do string.append(out, ", ");
 
             string.append(out, c);
@@ -424,7 +424,7 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
     }
 
 
-    for& member: s.members {
+    for& member in s.members {
         string.append(out, "    ");
         string.append(out, member.name);
 
@@ -453,7 +453,7 @@ output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
     output_entity_name_link(docs, e, out);
     conv.format(out, " :: enum {}{\n", "#flags " if e.flags&.Is_Flags else "");
 
-    for& value: e.values {
+    for& value in e.values {
         string.append(out, "    ");
         string.append(out, value.name);
 
@@ -492,7 +492,7 @@ output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
 
     if u.polymorph_arguments {
         string.append(out, " (");
-        for& p: u.polymorph_arguments {
+        for& p in u.polymorph_arguments {
             if !#first do string.append(out, ", ");
 
             conv.format(out, "{}: {}", p.name, p.type);
@@ -503,7 +503,7 @@ output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
     
     if u.constraints {
         string.append(out, "\n    where ");
-        for c: u.constraints {
+        for c in u.constraints {
             if !#first do string.append(out, ", ");
 
             string.append(out, c);
@@ -515,7 +515,7 @@ output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
     }
 
 
-    for& variant: u.variants {
+    for& variant in u.variants {
         string.append(out, "    ");
         string.append(out, variant.name);
         string.append(out, ": ");
@@ -539,7 +539,7 @@ output_method_list :: (docs: &doc.Doc, methods: [] doc.Doc_Procedure, name: str,
         string.append(out, "<div class=\"method-header\">Methods</div>");
 
         string.append(out, "<div>");
-        for &method: methods {
+        for &method in methods {
 
             if method.flags & .Is_Overloaded {
                 for& method.overloads {
@@ -575,7 +575,7 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
             |> array.sort((x, y) => string.compare(x.name, y.name));
     defer delete(&tlp);
 
-    for p: tlp {
+    for p in tlp {
         recurse(docs, &output, p, active_package);
     }
 
@@ -672,7 +672,7 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
         iter.as_iter(docs.procedures)->map(x => Index_Entry.{ .Proc, x.name, x.visibility, x.package_id }))
         ->filter(x => x.visibility == .Public);
 
-    for sym: symbols {
+    for sym in symbols {
         pack := docs.packages[sym.package_id];
         if should_ignore_package(pack.qualified_name) do continue;
 
