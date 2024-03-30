@@ -91,15 +91,14 @@ generate_docs :: (docs: &doc.Doc, destination_folder: str) {
             continue;
         }
 
-        for os.with_file(tprintf("{}/{}.html", package_folder, p.qualified_name), .Write) {
-            output: dyn_str;
-            generate_html_file_start(docs, &output, tprintf("Package {}", p.qualified_name), ~~p.id);
-            generate_package_html_file(docs, p, &output);
-            generate_html_file_end(docs, &output);
+        use file := os.open(tprintf("{}/{}.html", package_folder, p.qualified_name), .Write)->unwrap();
+        output: dyn_str;
+        generate_html_file_start(docs, &output, tprintf("Package {}", p.qualified_name), ~~p.id);
+        generate_package_html_file(docs, p, &output);
+        generate_html_file_end(docs, &output);
 
-            io.stream_write(it, output);
-            log(.Info, tprintf("Created '{}.html'", p.qualified_name));
-        }
+        io.stream_write(&file, output);
+        log(.Info, tprintf("Created '{}.html'", p.qualified_name));
     }
 }
 
@@ -110,58 +109,40 @@ generate_index_file :: (docs: &doc.Doc, index_file: str, destination_folder: str
         return;
     }
 
-    for os.with_file(tprintf("{}/index.html", destination_folder), .Write) {
-        output: dyn_str;
-        generate_html_file_start(docs, &output, "Index");
+    use file := os.open(tprintf("{}/index.html", destination_folder), .Write)->unwrap();
+    output: dyn_str;
+    generate_html_file_start(docs, &output, "Index");
 
-        generated_markup := markdown.translate_to_html(index_contents);
+    generated_markup := markdown.translate_to_html(index_contents);
 
-        string.append(&output, "<div>");
-        string.append(&output, generated_markup);
-        string.append(&output, "</div>");
+    string.append(&output, "<div>");
+    string.append(&output, generated_markup);
+    string.append(&output, "</div>");
 
-        generate_html_file_end(docs, &output);
+    generate_html_file_end(docs, &output);
 
-        io.stream_write(it, output);
-        log(.Info, "Created 'index.html'");
-    }
+    io.stream_write(&file, output);
+    log(.Info, "Created 'index.html'");
 }
 
 generate_static_folder :: (destination_folder: str) {
     static_folder := tprintf("{}/static", destination_folder);
     os.dir_create(static_folder);
 
-    for os.with_file(tprintf("{}/style.css", static_folder), .Write) {
-        io.stream_write(it, #file_contents "./parts/style.css");
+    write_file :: macro (name: str, contents: str) -> u32 {
+        use file := os.open(name, .Write)->unwrap();
+        io.stream_write(&file, contents);
+        return 0;
     }
 
-    for os.with_file(tprintf("{}/logo_256.png", static_folder), .Write) {
-        io.stream_write(it, #file_contents "./parts/logo_256.png");
-    }
-
-    for os.with_file(tprintf("{}/highlight.min.css", static_folder), .Write) {
-        io.stream_write(it, #file_contents "./parts/highlight.min.css");
-    }
-
-    for os.with_file(tprintf("{}/highlight.min.js", static_folder), .Write) {
-        io.stream_write(it, #file_contents "./parts/highlight.min.js");
-    }
-
-    for os.with_file(tprintf("{}/fuse.js", static_folder), .Write) {
-        io.stream_write(it, #file_contents "./parts/fuse.js");
-    }
-
-    for os.with_file(tprintf("{}/script.js", static_folder), .Write) {
-        io.stream_write(it, #file_contents "./parts/script.js");
-    }
-
-    for os.with_file(tprintf("{}/FiraCode-Regular.woff", static_folder), .Write) {
-        io.stream_write(it, #file_contents "./parts/FiraCode-Regular.woff");
-    }
-
-    for os.with_file(tprintf("{}/favicon.ico", static_folder), .Write) {
-        io.stream_write(it, #file_contents "./parts/favicon.ico");
-    }
+    write_file(tprintf("{}/style.css", static_folder), #file_contents "./parts/style.css");
+    write_file(tprintf("{}/logo_256.png", static_folder), #file_contents "./parts/logo_256.png");
+    write_file(tprintf("{}/highlight.min.css", static_folder), #file_contents "./parts/highlight.min.css");
+    write_file(tprintf("{}/highlight.min.js", static_folder), #file_contents "./parts/highlight.min.js");
+    write_file(tprintf("{}/fuse.js", static_folder), #file_contents "./parts/fuse.js");
+    write_file(tprintf("{}/script.js", static_folder), #file_contents "./parts/script.js");
+    write_file(tprintf("{}/FiraCode-Regular.woff", static_folder), #file_contents "./parts/FiraCode-Regular.woff");
+    write_file(tprintf("{}/favicon.ico", static_folder), #file_contents "./parts/favicon.ico");
 }
 
 generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selected_package_id := -1) {
