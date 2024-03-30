@@ -1,175 +1,70 @@
 /*
-Visual Studio-like style based on original C# coloring by Jason Diamond <jason@diamond.name>
+  IR_Black style (c) Vasily Mikhailitchenko <vaskas@programica.ru>
 */
-html.light-mode .hljs {
-  background: white;
-  color: black;
+
+.hljs {
+  /* background: #000; */
+  color: #f8f8f8;
 }
 
-html.light-mode .hljs-comment,
-html.light-mode .hljs-quote,
-html.light-mode .hljs-variable {
-  color: #008000;
+.hljs-comment,
+.hljs-quote,
+.hljs-meta {
+  color: #7c7c7c;
 }
 
-html.light-mode .hljs-keyword,
-html.light-mode .hljs-selector-tag,
-html.light-mode .hljs-built_in,
-html.light-mode .hljs-name,
-html.light-mode .hljs-tag {
-  color: #00f;
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-tag,
+.hljs-name {
+  color: #96cbfe;
 }
 
-html.light-mode .hljs-string,
-html.light-mode .hljs-title,
-html.light-mode .hljs-section,
-html.light-mode .hljs-attribute,
-html.light-mode .hljs-literal,
-html.light-mode .hljs-template-tag,
-html.light-mode .hljs-template-variable,
-html.light-mode .hljs-type,
-html.light-mode .hljs-addition {
-  color: #a31515;
+.hljs-attribute,
+.hljs-selector-id {
+  color: #ffffb6;
 }
 
-html.light-mode .hljs-deletion,
-html.light-mode .hljs-selector-attr,
-html.light-mode .hljs-selector-pseudo,
-html.light-mode .hljs-meta {
-  color: #2b91af;
+.hljs-string,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-addition {
+  color: #a8ff60;
 }
 
-html.light-mode .hljs-doctag {
-  color: #808080;
+.hljs-subst {
+  color: #daefa3;
 }
 
-html.light-mode .hljs-attr {
-  color: #f00;
+.hljs-regexp,
+.hljs-link {
+  color: #e9c062;
 }
 
-html.light-mode .hljs-symbol,
-html.light-mode .hljs-bullet,
-html.light-mode .hljs-link {
-  color: #00b0e8;
+.hljs-title,
+.hljs-section,
+.hljs-type,
+.hljs-doctag {
+  color: #ffffb6;
 }
 
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-literal {
+  color: #c6c5fe;
+}
 
-html.light-mode .hljs-emphasis {
+.hljs-number,
+.hljs-deletion {
+  color:#ff73fd;
+}
+
+.hljs-emphasis {
   font-style: italic;
 }
 
-html.light-mode .hljs-strong {
+.hljs-strong {
   font-weight: bold;
-}
-
-/*
- * Visual Studio 2015 dark style
- * Author: Nicolas LLOBERA <nllobera@gmail.com>
- */
-
-html.dark-mode .hljs {
-  background: #1E1E1E;
-  color: #DCDCDC;
-}
-
-html.dark-mode .hljs-keyword,
-html.dark-mode .hljs-literal,
-html.dark-mode .hljs-symbol,
-html.dark-mode .hljs-name {
-  color: #569CD6;
-}
-html.dark-mode .hljs-link {
-  color: #569CD6;
-  text-decoration: underline;
-}
-
-html.dark-mode .hljs-built_in,
-html.dark-mode .hljs-type {
-  color: #4EC9B0;
-}
-
-html.dark-mode .hljs-number,
-html.dark-mode .hljs-class {
-  color: #B8D7A3;
-}
-
-html.dark-mode .hljs-string,
-html.dark-mode .hljs-meta .hljs-string {
-  color: #D69D85;
-}
-
-html.dark-mode .hljs-regexp,
-html.dark-mode .hljs-template-tag {
-  color: #9A5334;
-}
-
-html.dark-mode .hljs-subst,
-html.dark-mode .hljs-function,
-html.dark-mode .hljs-title,
-html.dark-mode .hljs-params,
-html.dark-mode .hljs-formula {
-  color: #DCDCDC;
-}
-
-html.dark-mode .hljs-comment,
-html.dark-mode .hljs-quote {
-  color: #57A64A;
-  font-style: italic;
-}
-
-html.dark-mode .hljs-doctag {
-  color: #608B4E;
-}
-
-html.dark-mode .hljs-meta,
-html.dark-mode .hljs-meta .hljs-keyword,
-html.dark-mode .hljs-tag {
-  color: #9B9B9B;
-}
-
-html.dark-mode .hljs-variable,
-html.dark-mode .hljs-template-variable {
-  color: #BD63C5;
-}
-
-html.dark-mode .hljs-attr,
-html.dark-mode .hljs-attribute {
-  color: #9CDCFE;
-}
-
-html.dark-mode .hljs-section {
-  color: gold;
-}
-
-html.dark-mode .hljs-emphasis {
-  font-style: italic;
-}
-
-html.dark-mode .hljs-strong {
-  font-weight: bold;
-}
-
-/*.hljs-code {
-  font-family:'Monospace';
-}*/
-
-html.dark-mode .hljs-bullet,
-html.dark-mode .hljs-selector-tag,
-html.dark-mode .hljs-selector-id,
-html.dark-mode .hljs-selector-class,
-html.dark-mode .hljs-selector-attr,
-html.dark-mode .hljs-selector-pseudo {
-  color: #D7BA7D;
-}
-
-html.dark-mode .hljs-addition {
-  background-color: #144212;
-  display: inline-block;
-  width: 100%;
-}
-
-html.dark-mode .hljs-deletion {
-  background-color: #600;
-  display: inline-block;
-  width: 100%;
 }
