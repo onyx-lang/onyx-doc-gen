@@ -26,7 +26,7 @@ main :: (args: [] cstr) {
 
     args_iter := iter.as_iter(args)->map(x => string.as_str(x));
     
-    odoc_file := iter.next(args_iter);
+    odoc_file := iter.next(args_iter)->expect("Expected an output file name.");
     contents  := os.get_contents(odoc_file);
     if !contents {
         eprintf("""Failed to read contents of '{}'.\n""", odoc_file);
@@ -556,6 +556,10 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
                     |> Slice.sort((x, y) => string.compare(x.qualified_name, y.qualified_name));
 
     for p in sorted_packages {
+        if should_ignore_package(p.qualified_name) {
+            continue;
+        }
+
         conv.format(&output,
             "<a href=\"/packages/{}.html\"><div class=\"item {}\">{}</div></a>",
             p.qualified_name,
