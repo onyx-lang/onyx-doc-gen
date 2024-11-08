@@ -411,7 +411,7 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
         string.append(out, member.name);
 
         if member.type {
-            conv.format(out, ": {};", member.type);
+            conv.format(out, ": {}", member.type);
         }
 
         string.append(out, "\n");
@@ -439,7 +439,7 @@ output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
         string.append(out, "    ");
         string.append(out, value.name);
 
-        conv.format(out, " :: {};\n", value.value);
+        conv.format(out, " :: {}\n", value.value);
     }
 
     string.append(out, "}");
@@ -502,7 +502,7 @@ output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
         string.append(out, variant.name);
         string.append(out, ": ");
         string.append(out, variant.type);
-        string.append(out, ";\n");
+        string.append(out, "\n");
     }
 
     string.append(out, "}");
@@ -599,7 +599,7 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
         if p.subpackages {
             string.append(dest, "<div class=\"container\">");
 
-            array.sort(p.subpackages, (x, y, [docs]) => {
+            array.sort(p.subpackages, (x, y) use (docs) => {
                 return string.compare(docs.packages[~~x].name, docs.packages[~~y].name);
             });
 
@@ -654,20 +654,20 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
     symbols := iter.concat(
         iter.as_iter(docs.structures)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m, [x]) =>
+            iter.as_iter(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
         iter.as_iter(docs.enumerations)->map(x => Index_Entry.{ .Enum, x.name, x.visibility, x.package_id }),
         iter.as_iter(docs.unions)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Union, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m, [x]) =>
+            iter.as_iter(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
         iter.as_iter(docs.distinct_types)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m, [x]) =>
+            iter.as_iter(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
