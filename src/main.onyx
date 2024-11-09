@@ -12,12 +12,14 @@ generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
 
 ignored_packages: [..] str;
 should_ignore_package :: (s: str) =>
-    slice.some(ignored_packages, [prefix](string.starts_with(s, prefix)));
+    Slice.some(ignored_packages, [prefix](string.starts_with(s, prefix)));
+
+url_prefix := "/packages"
 
 main :: (args: [] cstr) {
     if args.length == 0 {
         eprintf("""Usage:
-    onyx-doc-gen <file.odoc> [--ignore-pkgs=...] [--output=generated] [--index=index_file]\n""");
+    onyx-doc-gen <file.odoc> [--ignore-pkgs=...] [--output=generated] [--index=index_file] [--url-prefix=/packages]\n""");
         os.exit(1);
     }
 
@@ -46,6 +48,10 @@ main :: (args: [] cstr) {
 
             case "--index" {
                 index_file = value;
+            }
+
+            case "--url-prefix" {
+                url_prefix = value
             }
 
             case #default {
@@ -140,9 +146,13 @@ generate_static_folder :: (destination_folder: str) {
     write_file(tprintf("{}/highlight.min.css", static_folder), #file_contents "./parts/highlight.min.css");
     write_file(tprintf("{}/highlight.min.js", static_folder), #file_contents "./parts/highlight.min.js");
     write_file(tprintf("{}/fuse.js", static_folder), #file_contents "./parts/fuse.js");
-    write_file(tprintf("{}/script.js", static_folder), #file_contents "./parts/script.js");
     write_file(tprintf("{}/GeistMono-Medium.otf", static_folder), #file_contents "./parts/GeistMono-Medium.otf");
     write_file(tprintf("{}/favicon.ico", static_folder), #file_contents "./parts/favicon.ico");
+    write_file(tprintf("{}/script.js", static_folder), #file_contents "./parts/script.js")
+
+    //     prefix, postfix := str.bisect(, "PACKAGE_PLACEHOLDER")
+    //     return tprintf("{}{}{}", prefix, url_prefix, postfix)
+    // })
 }
 
 generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selected_package_id := -1) {
@@ -561,7 +571,8 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
         }
 
         conv.format(&output,
-            "<a href=\"/packages/{}.html\"><div class=\"item {}\">{}</div></a>",
+            "<a href=\"{}/{}.html\"><div class=\"item {}\">{}</div></a>",
+            url_prefix,
             p.qualified_name,
             "active" if cast(u32, active_package) == ~~p.id else "",
             p.qualified_name);
@@ -591,7 +602,8 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
         }
 
         conv.format(dest,
-            "<a href=\"/packages/{}.html\"><div class=\"item {}\">{}</div></a>",
+            "<a href=\"{}/{}.html\"><div class=\"item {}\">{}</div></a>",
+            url_prefix,
             p.qualified_name,
             "active" if cast(u32, active_package) == ~~p.id else "",
             p.name);
