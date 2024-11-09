@@ -678,8 +678,7 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
         conv.format(&output,"\"type\":\"{}\",", sym.type);
         conv.format(&output,"\"package\":\"{}\",", pack.qualified_name);
 
-        if sym.struct_name do conv.format(&output,"\"name\":\"{}.{}\",", sym.struct_name, sym.name);
-        else               do conv.format(&output,"\"name\":\"{}\",", sym.name);
+        conv.format(&output,"\"name\":\"{}\",", sym.name);
 
         string.append(&output, "},");
     }
