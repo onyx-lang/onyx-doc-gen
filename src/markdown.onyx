@@ -31,8 +31,7 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
         }
 
         // Check for bullet list
-        if string.starts_with(line, "- ")
-            || string.starts_with(line, "* ") {
+        if string.starts_with(line, "- ") || string.starts_with(line, "* ") {
             set_translator_state(&state, &output, .Inside_Bullet_List);
 
             line = string.advance(line, 2) |> string.strip_leading_whitespace();
@@ -153,9 +152,9 @@ line_tokenizer :: (line: str) -> Iterator(Token) {
     return iter.generator(
         &.{ line = line, offset = 0 },
 
-        ctx => {
+        (ctx: &$T) -> ? Token {
             if ctx.offset >= ctx.line.length {
-                return Token.{}, false;
+                return .None;
             }
 
             ch := ctx.line[ctx.offset];
@@ -163,36 +162,36 @@ line_tokenizer :: (line: str) -> Iterator(Token) {
                 case '*' {
                     if ctx.line[ctx.offset + 1] == '*' && ctx.line[ctx.offset + 2] == '*' {
                         ctx.offset += 3;
-                        return .{false, 0, .Bold_Italics}, true;
+                        return Token.{false, 0, .Bold_Italics};
                     }
 
                     if ctx.line[ctx.offset + 1] == '*' {
                         ctx.offset += 2;
-                        return .{false, 0, .Bold}, true;
+                        return Token.{false, 0, .Bold};
                     }
 
                     ctx.offset += 1;
-                    return.{false, 0, .Italics}, true;
+                    return Token.{false, 0, .Italics};
                 }
 
                 case '`' {
                     ctx.offset += 1;
-                    return.{false, 0, .Code}, true;
+                    return Token.{false, 0, .Code};
                 }
 
                 case '\\' {
                     defer ctx.offset += 2;
-                    return .{ true, ctx.line[ctx.offset + 1] }, true;
+                    return Token.{ true, ctx.line[ctx.offset + 1] };
                 }
 
                 case '[' {
                     defer ctx.offset += 1;
-                    return .{false, 0, .Link}, true;
+                    return Token.{false, 0, .Link};
                 }
 
-                case #default {
+                case _ {
                     ctx.offset += 1;
-                    return .{ true, ch }, true;
+                    return Token.{ true, ch };
                 }
             }
         }

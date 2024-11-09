@@ -12,12 +12,14 @@ generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
 
 ignored_packages: [..] str;
 should_ignore_package :: (s: str) =>
-    slice.some(ignored_packages, [prefix](string.starts_with(s, prefix)));
+    Slice.some(ignored_packages, [prefix](string.starts_with(s, prefix)));
+
+url_prefix := "/packages"
 
 main :: (args: [] cstr) {
     if args.length == 0 {
         eprintf("""Usage:
-    onyx-doc-gen <file.odoc> [--ignore-pkgs=...] [--output=generated] [--index=index_file]\n""");
+    onyx-doc-gen <file.odoc> [--ignore-pkgs=...] [--output=generated] [--index=index_file] [--url-prefix=/packages]\n""");
         os.exit(1);
     }
 
@@ -26,7 +28,7 @@ main :: (args: [] cstr) {
 
     args_iter := iter.as_iter(args)->map(x => string.as_str(x));
     
-    odoc_file := iter.next(args_iter);
+    odoc_file := iter.next(args_iter)->expect("Expected an output file name.");
     contents  := os.get_contents(odoc_file);
     if !contents {
         eprintf("""Failed to read contents of '{}'.\n""", odoc_file);
@@ -46,6 +48,10 @@ main :: (args: [] cstr) {
 
             case "--index" {
                 index_file = value;
+            }
+
+            case "--url-prefix" {
+                url_prefix = value
             }
 
             case #default {
@@ -140,9 +146,13 @@ generate_static_folder :: (destination_folder: str) {
     write_file(tprintf("{}/highlight.min.css", static_folder), #file_contents "./parts/highlight.min.css");
     write_file(tprintf("{}/highlight.min.js", static_folder), #file_contents "./parts/highlight.min.js");
     write_file(tprintf("{}/fuse.js", static_folder), #file_contents "./parts/fuse.js");
-    write_file(tprintf("{}/script.js", static_folder), #file_contents "./parts/script.js");
     write_file(tprintf("{}/GeistMono-Medium.otf", static_folder), #file_contents "./parts/GeistMono-Medium.otf");
     write_file(tprintf("{}/favicon.ico", static_folder), #file_contents "./parts/favicon.ico");
+    write_file(tprintf("{}/script.js", static_folder), #file_contents "./parts/script.js")
+
+    //     prefix, postfix := str.bisect(, "PACKAGE_PLACEHOLDER")
+    //     return tprintf("{}{}{}", prefix, url_prefix, postfix)
+    // })
 }
 
 generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selected_package_id := -1) {
@@ -411,7 +421,7 @@ output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_st
         string.append(out, member.name);
 
         if member.type {
-            conv.format(out, ": {};", member.type);
+            conv.format(out, ": {}", member.type);
         }
 
         string.append(out, "\n");
@@ -439,7 +449,7 @@ output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
         string.append(out, "    ");
         string.append(out, value.name);
 
-        conv.format(out, " :: {};\n", value.value);
+        conv.format(out, " :: {}\n", value.value);
     }
 
     string.append(out, "}");
@@ -502,7 +512,7 @@ output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
         string.append(out, variant.name);
         string.append(out, ": ");
         string.append(out, variant.type);
-        string.append(out, ";\n");
+        string.append(out, "\n");
     }
 
     string.append(out, "}");
@@ -556,8 +566,13 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
                     |> Slice.sort((x, y) => string.compare(x.qualified_name, y.qualified_name));
 
     for p in sorted_packages {
+        if should_ignore_package(p.qualified_name) {
+            continue;
+        }
+
         conv.format(&output,
-            "<a href=\"/packages/{}.html\"><div class=\"item {}\">{}</div></a>",
+            "<a href=\"{}/{}.html\"><div class=\"item {}\">{}</div></a>",
+            url_prefix,
             p.qualified_name,
             "active" if cast(u32, active_package) == ~~p.id else "",
             p.qualified_name);
@@ -587,7 +602,8 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
         }
 
         conv.format(dest,
-            "<a href=\"/packages/{}.html\"><div class=\"item {}\">{}</div></a>",
+            "<a href=\"{}/{}.html\"><div class=\"item {}\">{}</div></a>",
+            url_prefix,
             p.qualified_name,
             "active" if cast(u32, active_package) == ~~p.id else "",
             p.name);
@@ -595,7 +611,7 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
         if p.subpackages {
             string.append(dest, "<div class=\"container\">");
 
-            array.sort(p.subpackages, (x, y, [docs]) => {
+            array.sort(p.subpackages, (x, y) use (docs) => {
                 return string.compare(docs.packages[~~x].name, docs.packages[~~y].name);
             });
 
@@ -650,20 +666,20 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
     symbols := iter.concat(
         iter.as_iter(docs.structures)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m, [x]) =>
+            iter.as_iter(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
         iter.as_iter(docs.enumerations)->map(x => Index_Entry.{ .Enum, x.name, x.visibility, x.package_id }),
         iter.as_iter(docs.unions)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Union, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m, [x]) =>
+            iter.as_iter(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
         iter.as_iter(docs.distinct_types)->flat_map(x => iter.concat(
             iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m, [x]) =>
+            iter.as_iter(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
