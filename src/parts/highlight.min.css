@@ -2,69 +2,140 @@
   IR_Black style (c) Vasily Mikhailitchenko <vaskas@programica.ru>
 */
 
-.hljs {
-  /* background: #000; */
-  color: #f8f8f8;
+@media (prefers-color-scheme: light) {
+  .hljs {
+    color: #1c1c1f;
+  }
+
+  .hljs-comment,
+  .hljs-quote,
+  .hljs-meta {
+    color: #6b6b76;
+  }
+
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-tag,
+  .hljs-name {
+    color: #2563eb;
+    font-weight: 600;
+  }
+
+  .hljs-attribute,
+  .hljs-selector-id {
+    color: #6a5420;
+  }
+
+  .hljs-string,
+  .hljs-selector-attr,
+  .hljs-selector-pseudo,
+  .hljs-addition {
+    color: #0c7a4a;
+  }
+
+  .hljs-subst {
+    color: #3f6b28;
+  }
+
+  .hljs-regexp,
+  .hljs-link {
+    color: #8a5a12;
+  }
+
+  .hljs-title,
+  .hljs-section,
+  .hljs-type,
+  .hljs-doctag {
+    color: #1d4ed8;
+    font-weight: 600;
+  }
+
+  .hljs-symbol,
+  .hljs-bullet,
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-literal {
+    color: #1d4ed8;
+  }
+
+  .hljs-number,
+  .hljs-deletion {
+    color: #b45309;
+  }
+
+  .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .hljs-strong {
+    font-weight: bold;
+  }
 }
 
-.hljs-comment,
-.hljs-quote,
-.hljs-meta {
-  color: #7c7c7c;
-}
+@media (prefers-color-scheme: dark) {
+  .hljs {
+    color: #e6e7eb;
+  }
 
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-tag,
-.hljs-name {
-  color: #96cbfe;
-}
+  .hljs-comment,
+  .hljs-quote,
+  .hljs-meta {
+    color: #6b7080;
+  }
 
-.hljs-attribute,
-.hljs-selector-id {
-  color: #ffffb6;
-}
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-tag,
+  .hljs-name {
+    color: #7aa2f7;
+  }
 
-.hljs-string,
-.hljs-selector-attr,
-.hljs-selector-pseudo,
-.hljs-addition {
-  color: #a8ff60;
-}
+  .hljs-attribute,
+  .hljs-selector-id {
+    color: #e0af68;
+  }
 
-.hljs-subst {
-  color: #daefa3;
-}
+  .hljs-string,
+  .hljs-selector-attr,
+  .hljs-selector-pseudo,
+  .hljs-addition {
+    color: #9ece6a;
+  }
 
-.hljs-regexp,
-.hljs-link {
-  color: #e9c062;
-}
+  .hljs-subst {
+    color: #9ece6a;
+  }
 
-.hljs-title,
-.hljs-section,
-.hljs-type,
-.hljs-doctag {
-  color: #ffffb6;
-}
+  .hljs-regexp,
+  .hljs-link {
+    color: #e0af68;
+  }
 
-.hljs-symbol,
-.hljs-bullet,
-.hljs-variable,
-.hljs-template-variable,
-.hljs-literal {
-  color: #c6c5fe;
-}
+  .hljs-title,
+  .hljs-section,
+  .hljs-type,
+  .hljs-doctag {
+    color: #7aa2f7;
+  }
 
-.hljs-number,
-.hljs-deletion {
-  color:#ff73fd;
-}
+  .hljs-symbol,
+  .hljs-bullet,
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-literal {
+    color: #bb9af7;
+  }
 
-.hljs-emphasis {
-  font-style: italic;
-}
+  .hljs-number,
+  .hljs-deletion {
+    color: #e0af68;
+  }
 
-.hljs-strong {
-  font-weight: bold;
+  .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .hljs-strong {
+    font-weight: bold;
+  }
 }

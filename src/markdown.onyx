@@ -7,7 +7,7 @@ translate_to_html :: #match #local {}
 
 #overload
 translate_to_html :: (s: str, allocator := context.allocator) -> str {
-    return translate_to_html(string.split_iter(s, "\n"));
+    return translate_to_html(str.split_iter(s, "\n"));
 }
 
 #overload
@@ -20,49 +20,49 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
 
     for line in lines {
         // Check for heading.
-        if string.starts_with(line, "#") {
+        if str.starts_with(line, "#") {
             flush_state_to_base(&state, &output);
-            hashes := iter.as_iter(line)->take_while(x => x == '#')->count(x => true);
+            hashes := Iterator.from(line)->take_while(x => x == '#')->count(x => true);
 
-            line = string.advance(line, hashes) |> string.strip_leading_whitespace();
+            line = str.advance(line, hashes) |> str.strip_leading_whitespace();
 
             conv.format(&output, "<h{}>{}</h{}>", hashes, line, hashes);
             continue;
         }
 
         // Check for bullet list
-        if string.starts_with(line, "- ") || string.starts_with(line, "* ") {
+        if str.starts_with(line, "- ") || str.starts_with(line, "* ") {
             set_translator_state(&state, &output, .Inside_Bullet_List);
 
-            line = string.advance(line, 2) |> string.strip_leading_whitespace();
+            line = str.advance(line, 2) |> str.strip_leading_whitespace();
 
-            string.append(&output, "<li>");
+            dyn_str.append(&output, "<li>");
             process_single_line(line, &output);
-            string.append(&output, "</li>");
+            dyn_str.append(&output, "</li>");
             continue;
         }
 
         // Check for horizontal rule
-        if string.starts_with(line, "---") {
+        if str.starts_with(line, "---") {
             flush_state_to_base(&state, &output);
-            string.append(&output, "<hr />");
+            dyn_str.append(&output, "<hr />");
             continue;
         }
 
         // Empty lines clear formatting
-        if string.empty(line) {
+        if str.empty(line) {
             flush_state_to_base(&state, &output);
             continue;
         }
 
         // Check for starting a preformatted block.
-        if string.starts_with(line, "    ") || string.starts_with(line, "\t") {
+        if str.starts_with(line, "    ") || str.starts_with(line, "\t") {
             set_translator_state(&state, &output, .Inside_Preformatted_Block);
 
             if line[0] == '\t' {
-                line = string.advance(line, 1);
+                line = str.advance(line, 1);
             } else {
-                line = string.advance(line, 4);
+                line = str.advance(line, 4);
             }
 
             conv.format(&output, "{}\n", line);
@@ -71,8 +71,8 @@ translate_to_html :: (lines: Iterator(str), allocator := context.allocator) -> s
 
         set_translator_state(&state, &output, .Inside_Paragraph);
 
-        line = string.strip_whitespace(line);
-        string.append(&output, " ");
+        line = str.strip_whitespace(line);
+        dyn_str.append(&output, " ");
         process_single_line(line, &output);
     }
 
@@ -91,7 +91,7 @@ process_single_line :: (line_: str, output: &dyn_str) {
         next_state := Line_State.Normal;
 
         if it.is_character {
-            string.append(output, it.char);
+            dyn_str.append(output, it.char);
             continue;
         }
 
@@ -103,12 +103,12 @@ process_single_line :: (line_: str, output: &dyn_str) {
 
             case .Link {
                 if state != .Code {
-                    path := tokens->take_while(x => x.char != ']')->map(x => x.char) |> iter.to_array();
+                    path := tokens->take_while(x => x.char != ']')->map(x => x.char)->collect();
 
-                    iter.next(tokens);
-                    iter.next(tokens);
+                    Iterator.next(tokens);
+                    Iterator.next(tokens);
 
-                    link := tokens->take_while(x => x.char != ')')->map(x => x.char) |> iter.to_array();
+                    link := tokens->take_while(x => x.char != ')')->map(x => x.char)->collect();
                     conv.format(output, "<a href=\"{}\">{}</a>", cast([] u8) link, cast([] u8) path);
                 }
             }
@@ -130,26 +130,26 @@ process_single_line :: (line_: str, output: &dyn_str) {
 
     emit_tag_open :: macro (state: Line_State) {
         switch state {
-            case .Bold do string.append(output, "<strong>");
-            case .Italics do string.append(output, "<em>");
-            case .Bold_Italics do string.append(output, "<strong><em>");
-            case .Code do string.append(output, "<code class=\"hljs language-onyx\">");
+            case .Bold do dyn_str.append(output, "<strong>");
+            case .Italics do dyn_str.append(output, "<em>");
+            case .Bold_Italics do dyn_str.append(output, "<strong><em>");
+            case .Code do dyn_str.append(output, "<code class=\"hljs language-onyx\">");
         }
     }
     
     emit_tag_close :: macro (state: Line_State) {
         switch state {
-            case .Bold do string.append(output, "</strong>");
-            case .Italics do string.append(output, "</em>");
-            case .Bold_Italics do string.append(output, "</em></strong>");
-            case .Code do string.append(output, "</code>");
+            case .Bold do dyn_str.append(output, "</strong>");
+            case .Italics do dyn_str.append(output, "</em>");
+            case .Bold_Italics do dyn_str.append(output, "</em></strong>");
+            case .Code do dyn_str.append(output, "</code>");
         }
     }
 }
 
 #local
 line_tokenizer :: (line: str) -> Iterator(Token) {
-    return iter.generator(
+    return Iterator.generator(
         &.{ line = line, offset = 0 },
 
         (ctx: &$T) -> ? Token {
@@ -231,19 +231,19 @@ Translator_State :: struct {
 flush_state_to_base :: (state: &Translator_State, out: &dyn_str) {
     switch state.state {
         case .Inside_Paragraph {
-            string.append(out, "</p>");
+            dyn_str.append(out, "</p>");
         }
 
         case .Inside_Preformatted_Block {
-            string.append(out, "</code></pre>");
+            dyn_str.append(out, "</code></pre>");
         }
 
         case .Inside_Numeric_List {
-            string.append(out, "</ol>");
+            dyn_str.append(out, "</ol>");
         }
 
         case .Inside_Bullet_List {
-            string.append(out, "</ul>");
+            dyn_str.append(out, "</ul>");
         }
     }
 
@@ -258,20 +258,20 @@ set_translator_state :: (state: &Translator_State, out: &dyn_str, s: Translator_
 
     switch s {
         case .Inside_Paragraph {
-            string.append(out, "<p>");
+            dyn_str.append(out, "<p>");
         }
 
         case .Inside_Preformatted_Block {
             // :Config
-            string.append(out, "<pre class=\"hljs language-onyx\"><code>");
+            dyn_str.append(out, "<pre class=\"hljs language-onyx\"><code>");
         }
 
         case .Inside_Numeric_List {
-            string.append(out, "<ol>");
+            dyn_str.append(out, "<ol>");
         }
 
         case .Inside_Bullet_List {
-            string.append(out, "<ul>");
+            dyn_str.append(out, "<ul>");
         }
     }
 
@@ -292,7 +292,7 @@ indent_markdown_deindent :: (s_: str) -> Iterator(str) {
             whitespace_count += 1;
         }
         elseif c == '\n' {
-            s = string.advance(s, whitespace_count + 1);
+            s = str.advance(s, whitespace_count + 1);
             whitespace_count = 0;
         }
         else {
@@ -300,9 +300,9 @@ indent_markdown_deindent :: (s_: str) -> Iterator(str) {
         }
     }
 
-    return string.split_iter(s, "\n")
+    return str.split_iter(s, "\n")
         ->map(whitespace_count, (x, c) => {
             if x.length < c do return "";
-            return string.advance(x, c);
+            return str.advance(x, c);
         });
 }

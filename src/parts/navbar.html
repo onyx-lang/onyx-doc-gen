@@ -1,18 +1,21 @@
-<navbar>
-    <div class="logo">
-        <a href="/index.html"><img src="/static/logo_256.png" alt="Onyx Logo" width="32" height="32"/></a>
-    </div>
+<div class="navbar-container">
+    <navbar>
+        <a class="brand" href="/index.html">
+            <img src="/static/logo_256.png" alt="" width="32" height="32">
+            <span class="brand-name">Onyx</span>
+        </a>
 
-    <div class="searchbar">
-        <div class="search-container">
-            <input id="package-search" type="text" placeholder="Search...">
-            <ul class="search-results">
-            </ul>
+        <div class="searchbar">
+            <div class="search-container">
+                <input id="package-search" type="search" placeholder="Search symbols…" autocomplete="off" spellcheck="false" aria-label="Search symbols">
+                <ul class="search-results"></ul>
+            </div>
         </div>
-    </div>
 
-    <div class="links">
-        <div class="toggle-colors">dark mode</div>
-    </div>
-</navbar>
-
+        <div class="nav-links">
+            <a href="https://onyxlang.io/docs"><span>Docs</span></a>
+            <a href="https://onyxlang.io/news"><span>News</span></a>
+            <a href="https://github.com/onyx-lang/onyx" target="_blank"><span>GitHub</span></a>
+        </div>
+    </navbar>
+</div>

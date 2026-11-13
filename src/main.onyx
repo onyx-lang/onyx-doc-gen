@@ -7,12 +7,12 @@ use markdown
 
 generate_link_from_source :: (s: doc.Doc_Location, docs: &doc.Doc) =>
     tprintf("https://github.com/onyx-lang/onyx/tree/master{}#L{}",
-        string.advance(docs.files[s.file_id].name, os.env("ONYX_PATH")->unwrap().count),
+        str.advance(docs.files[s.file_id].name, os.env("ONYX_PATH")->unwrap().count),
         s.line);
 
 ignored_packages: [..] str;
 should_ignore_package :: (s: str) =>
-    Slice.some(ignored_packages, [prefix](string.starts_with(s, prefix)));
+    Slice.some(ignored_packages, [prefix](str.starts_with(s, prefix)));
 
 url_prefix := "/packages"
 
@@ -26,9 +26,9 @@ main :: (args: [] cstr) {
     index_file := "";
     destination_folder := "generated";
 
-    args_iter := iter.as_iter(args)->map(x => string.as_str(x));
+    args_iter := Iterator.from(args)->map(x => str.as_str(x));
     
-    odoc_file := iter.next(args_iter)->expect("Expected an output file name.");
+    odoc_file := Iterator.next(args_iter)->expect("Expected an output file name.");
     contents  := os.get_contents(odoc_file);
     if !contents {
         eprintf("""Failed to read contents of '{}'.\n""", odoc_file);
@@ -36,10 +36,10 @@ main :: (args: [] cstr) {
     }
 
     for args_iter {
-        key, value := string.bisect(it, "=");
+        key, value := str.bisect(it, "=");
         switch key {
             case "--ignore-pkgs" {
-                array.concat(&ignored_packages, string.split(value, ','));
+                Array.concat(&ignored_packages, str.split(value, ','));
             }
 
             case "--output" {
@@ -54,7 +54,7 @@ main :: (args: [] cstr) {
                 url_prefix = value
             }
 
-            case #default {
+            case _ {
                 eprintf("Unknown argument: '{}'\n", it);
                 os.exit(1);
             }
@@ -77,19 +77,19 @@ main :: (args: [] cstr) {
 }
 
 generate_docs :: (docs: &doc.Doc, destination_folder: str) {
-    if os.dir_exists(destination_folder) {
+    if os.Directory.exists(destination_folder) {
         log(.Info, tprintf("Removing old '{}' directory.", destination_folder));
-        os.remove_directory(destination_folder);
+        os.Directory.remove_recursive(destination_folder);
     }
 
     log(.Info, tprintf("Creating '{}'.", destination_folder));
-    os.dir_create(destination_folder);
+    os.Directory.create(destination_folder);
 
     generate_static_folder(destination_folder);
 
     package_folder := tprintf("{}/packages", destination_folder);
     log(.Info, tprintf("Creating '{}'.", package_folder));
-    os.dir_create(package_folder);
+    os.Directory.create(package_folder);
 
     for& p in docs.packages {
         if should_ignore_package(p.qualified_name) {
@@ -97,13 +97,13 @@ generate_docs :: (docs: &doc.Doc, destination_folder: str) {
             continue;
         }
 
-        use file := os.open(tprintf("{}/{}.html", package_folder, p.qualified_name), .Write)->unwrap();
+        use file := os.File.open(tprintf("{}/{}.html", package_folder, p.qualified_name), .Write)->unwrap();
         output: dyn_str;
         generate_html_file_start(docs, &output, tprintf("Package {}", p.qualified_name), ~~p.id);
         generate_package_html_file(docs, p, &output);
         generate_html_file_end(docs, &output);
 
-        io.stream_write(&file, output);
+        io.Stream.write(&file, output);
         log(.Info, tprintf("Created '{}.html'", p.qualified_name));
     }
 }
@@ -115,34 +115,35 @@ generate_index_file :: (docs: &doc.Doc, index_file: str, destination_folder: str
         return;
     }
 
-    use file := os.open(tprintf("{}/index.html", destination_folder), .Write)->unwrap();
+    use file := os.File.open(tprintf("{}/index.html", destination_folder), .Write)->unwrap();
     output: dyn_str;
     generate_html_file_start(docs, &output, "Index");
 
     generated_markup := markdown.translate_to_html(index_contents);
 
-    string.append(&output, "<div>");
-    string.append(&output, generated_markup);
-    string.append(&output, "</div>");
+    dyn_str.append(&output, "<div>");
+    dyn_str.append(&output, generated_markup);
+    dyn_str.append(&output, "</div>");
 
     generate_html_file_end(docs, &output);
 
-    io.stream_write(&file, output);
+    io.Stream.write(&file, output);
     log(.Info, "Created 'index.html'");
 }
 
 generate_static_folder :: (destination_folder: str) {
     static_folder := tprintf("{}/static", destination_folder);
-    os.dir_create(static_folder);
+    os.Directory.create(static_folder);
 
     write_file :: macro (name: str, contents: str) -> u32 {
-        use file := os.open(name, .Write)->unwrap();
-        io.stream_write(&file, contents);
+        use file := os.File.open(name, .Write)->unwrap();
+        io.Stream.write(&file, contents);
         return 0;
     }
 
     write_file(tprintf("{}/style.css", static_folder), #file_contents "./parts/style.css");
     write_file(tprintf("{}/logo_256.png", static_folder), #file_contents "./parts/logo_256.png");
+    write_file(tprintf("{}/FiraCode-Regular.woff", static_folder), #file_contents "./parts/FiraCode-Regular.woff");
     write_file(tprintf("{}/highlight.min.css", static_folder), #file_contents "./parts/highlight.min.css");
     write_file(tprintf("{}/highlight.min.js", static_folder), #file_contents "./parts/highlight.min.js");
     write_file(tprintf("{}/fuse.js", static_folder), #file_contents "./parts/fuse.js");
@@ -157,45 +158,46 @@ generate_static_folder :: (destination_folder: str) {
 
 generate_html_file_start :: (docs: &doc.Doc, output: &dyn_str, title: str, selected_package_id := -1) {
     conv.format(output, """
-<html class="dark-mode">
+<!DOCTYPE html>
+<html class="ui-theme" lang="en">
     <head>
         <title>{}</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="stylesheet" href="/static/highlight.min.css" />
         <link rel="stylesheet" href="/static/style.css" />
         <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 
-        <script src="/static/fuse.js"></script> 
+        <script src="/static/fuse.js"></script>
         <script src="/static/highlight.min.js"></script>
         <script src="/static/script.js"></script>
     </head>
 
-    <body style="display: none">
+    <body>
 """, title);
 
-    string.append(output, #file_contents "./parts/navbar.html");
+    dyn_str.append(output, #file_contents "./parts/navbar.html");
 
-    string.append(output, "<main>");
+    dyn_str.append(output, "<main>");
 
     {
         sidebar := build_package_tree_sidebar(docs, ~~selected_package_id);
         defer delete(&sidebar);
 
-        string.append(output, sidebar);
+        dyn_str.append(output, sidebar);
     }
 
-    string.append(output, "<div class=\"divider left\"></div>");
-
-    string.append(output, "<div class=\"main-view\">");
+    dyn_str.append(output, "<div class=\"main-view\">");
 
 }
 
 generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
-    string.append(output, "</main>");
+    dyn_str.append(output, "</div></main>");
 
-    string.append(output, #file_contents "./parts/footer.html");
+    dyn_str.append(output, #file_contents "./parts/footer.html");
 
-    string.append(output, """
+    dyn_str.append(output, """
 <script>
     window.addEventListener("load", () => {
         hljs.configure({ cssSelector: 'pre.hljs code' })
@@ -203,27 +205,26 @@ generate_html_file_end :: (docs: &doc.Doc, output: &dyn_str) {
     });
 </script>""");
 
-    string.append(output, build_json_index_script_tag(docs));
+    dyn_str.append(output, build_json_index_script_tag(docs));
 
-    string.append(output, "</body></html>");
+    dyn_str.append(output, "</body></html>");
 }
 
 generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn_str) {
-    conv.format(output, "<h2><pre><span style=\"color: #99f\">package</span> <span>{}</span></pre></h2>", p.qualified_name);
+    conv.format(output, "<header class=\"package-heading\"><p class=\"package-kicker\">Package</p><h1>{}</h1></header>", p.qualified_name);
 
     for p.notes {
-        string.append(output, "<div class=\"package-description\">");
+        dyn_str.append(output, "<div class=\"package-description\">");
         generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(it));
         defer delete(&generated_markup);
 
-        string.append(output, generated_markup);
-        string.append(output, "</div>");
+        dyn_str.append(output, generated_markup);
+        dyn_str.append(output, "</div>");
     }
 
     output_all :: macro (arr: $T, f: $F) {
         for arr {
-            // HACK
-            #if T == [] &doc.Doc_Procedure {
+            #if #defined(it.flags) {
                 if it.flags & .Is_Overloaded {
                     f(docs, it, output);
                     continue;
@@ -232,7 +233,7 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
 
             output_entity_header(docs, it, output);
             f(docs, it, output);
-            string.append(output, "</div>");
+            dyn_str.append(output, "</div>");
         }
     }
 
@@ -251,47 +252,43 @@ generate_package_html_file :: (docs: &doc.Doc, p: &doc.Doc_Package, output: &dyn
     procs := filter_and_sort(docs.procedures, p);
     output_all(procs, output_procedure_definition);
 
-    string.append(output, "</div>");
-
-    string.append(output, "<div></div>");
-
    // build_symbol_sidebar(
-   //     iter.concat(
-   //         iter.as_iter(structs)->flat_map(x => iter.concat(
-   //             iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
-   //             iter.as_iter(x.methods)->map((m, [x]) =>
+   //     Iterator.concat(
+   //         Iterator.from(structs)->flat_map(x => Iterator.concat(
+   //             Iterator.single(SidebarSymbol.{ x.name, x.name, 0 }),
+   //             Iterator.from(x.methods)->map((m, [x]) =>
    //                 SidebarSymbol.{ m.name, tprintf("{}.{}", x.name, m.name), 1 }
    //             )
    //         )),
-   //         iter.as_iter(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
-   //         iter.as_iter(unions)->flat_map(x => iter.concat(
-   //             iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
-   //             iter.as_iter(x.methods)->map((m, [x]) =>
+   //         Iterator.from(enums)->map(x => SidebarSymbol.{ x.name, x.name, 0 }),
+   //         Iterator.from(unions)->flat_map(x => Iterator.concat(
+   //             Iterator.single(SidebarSymbol.{ x.name, x.name, 0 }),
+   //             Iterator.from(x.methods)->map((m, [x]) =>
    //                 SidebarSymbol.{ m.name, tprintf("{}.{}", x.name, m.name), 1 }
    //             )
    //         )),
-   //         iter.as_iter(distincts)->flat_map(x => iter.concat(
-   //             iter.single(SidebarSymbol.{ x.name, x.name, 0 }),
-   //             iter.as_iter(x.methods)->map((m, [x]) =>
+   //         Iterator.from(distincts)->flat_map(x => Iterator.concat(
+   //             Iterator.single(SidebarSymbol.{ x.name, x.name, 0 }),
+   //             Iterator.from(x.methods)->map((m, [x]) =>
    //                 SidebarSymbol.{ m.name, tprintf("{}.{}", x.name, m.name), 1 }
    //             )
    //         )),
-   //         iter.as_iter(procs)->map(x => SidebarSymbol.{ x.name, x.name, 0 })),
+   //         Iterator.from(procs)->map(x => SidebarSymbol.{ x.name, x.name, 0 })),
    //     output);
 }
 
 filter_and_sort :: (arr: [] $T, p: &doc.Doc_Package) -> [] &T {
-    output := iter.as_iter(arr, by_pointer=true)
-        |> iter.filter(x => x.visibility == .Public)
-        |> iter.filter(p, (it, p) => cast(u32, it.package_id) == ~~p.id)
-        |> iter.to_array();
+    output := Iterator.from(arr, by_pointer=true)
+        |> Iterator.filter(x => x.visibility == .Public)
+        |> Iterator.filter(p, (it, p) => cast(u32, it.package_id) == ~~p.id)
+        |> Iterator.collect();
 
-    array.sort(output, (x, y) => {
+    Array.sort(output, (x, y) => {
         if x.visibility != y.visibility {
             return cast(i32, x.visibility) - cast(i32, y.visibility);
         }
 
-        return string.compare(x.name, y.name);
+        return str.compare(x.name, y.name);
     });
 
     return output;
@@ -299,14 +296,14 @@ filter_and_sort :: (arr: [] $T, p: &doc.Doc_Package) -> [] &T {
 
 output_entity_header :: (docs: &doc.Doc, ent: &doc.Doc_Entity, output: &dyn_str) {
     conv.format(output, "<div id=\"{}\" class=\"package-entry\">", ent.name);
-    string.append(output, "<div class=\"entry-header\">");
+    dyn_str.append(output, "<div class=\"entry-header\">");
 
-    string.append(output, "<div>");
+    dyn_str.append(output, "<div>");
     conv.format(output, "<span class=\"entry-name\">{}</span>", ent.name);
-    string.append(output, "</div>");
+    dyn_str.append(output, "</div>");
 
     conv.format(output, "<span class=\"entry-source\"><a href=\"{}\">{}</a></span>", generate_link_from_source(ent.location, docs), SOURCE_SVG);
-    string.append(output, "</div>");
+    dyn_str.append(output, "</div>");
 }
 
 output_entity_name_link :: (docs: &doc.Doc, ent: &doc.Doc_Entity, output: &dyn_str) {
@@ -319,12 +316,12 @@ output_entity_name_link :: (docs: &doc.Doc, ent: &doc.Doc_Entity, output: &dyn_s
 output_entity_description :: (ent: &doc.Doc_Entity, output: &dyn_str) {
     if !ent.notes do return;
 
-    string.append(output, "<div class=\"description-container\">");
+    dyn_str.append(output, "<div class=\"description-container\">");
     generated_markup := markdown.translate_to_html(markdown.indent_markdown_deindent(ent.notes));
     defer delete(&generated_markup);
 
-    string.append(output, generated_markup);
-    string.append(output, "</div>");
+    dyn_str.append(output, generated_markup);
+    dyn_str.append(output, "</div>");
 }
 
 output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn_str, outmost := true) {
@@ -344,12 +341,12 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
 
         if outmost {
             output_entity_description(p, out);
-            string.append(out, "</div>");
+            dyn_str.append(out, "</div>");
         }
         return;
     }
 
-    string.append(out, "<div class=\"source-definition\">");
+    dyn_str.append(out, "<div class=\"source-definition\">");
     conv.format(out, "<pre class=\"hljs\"><code class=\"language-onyx\">");
 
     output_entity_name_link(docs, p, out);
@@ -357,9 +354,9 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
         "macro " if p.flags&.Is_Macro else "");
 
     for& param in p.params {
-        if !#first do string.append(out, ", ");
+        if !#first do dyn_str.append(out, ", ");
 
-        string.append(out, param.name);
+        dyn_str.append(out, param.name);
 
         if param.type {
             conv.format(out, ": {}", param.type);
@@ -369,168 +366,168 @@ output_procedure_definition :: (docs: &doc.Doc, p: &doc.Doc_Procedure, out: &dyn
     conv.format(out, ") -> {}", p.return_type);
 
     if p.constraints {
-        string.append(out, "\n    where ");
+        dyn_str.append(out, "\n    where ");
         for c in p.constraints {
-            if !#first do string.append(out, ", ");
+            if !#first do dyn_str.append(out, ", ");
 
-            string.append(out, c);
+            dyn_str.append(out, c);
         }
     }
 
-    string.append(out, "</code></pre>");
+    dyn_str.append(out, "</code></pre>");
 
-    string.append(out, "</div>");
+    dyn_str.append(out, "</div>");
 
     output_entity_description(p, out);
 }
 
 output_struct_definition :: (docs: &doc.Doc, s: &doc.Doc_Structure, out: &dyn_str) {
-    string.append(out, "<div class=\"source-definition\">");
+    dyn_str.append(out, "<div class=\"source-definition\">");
     conv.format(out, "<pre class=\"hljs\"><code class=\"language-onyx\">");
 
     output_entity_name_link(docs, s, out);
-    string.append(out, " :: struct");
+    dyn_str.append(out, " :: struct");
 
     if s.polymorph_arguments {
-        string.append(out, " (");
+        dyn_str.append(out, " (");
         for& p in s.polymorph_arguments {
-            if !#first do string.append(out, ", ");
+            if !#first do dyn_str.append(out, ", ");
 
             conv.format(out, "{}: {}", p.name, p.type);
         }
-        string.append(out, ")");
+        dyn_str.append(out, ")");
     }
 
     
     if s.constraints {
-        string.append(out, "\n    where ");
+        dyn_str.append(out, "\n    where ");
         for c in s.constraints {
-            if !#first do string.append(out, ", ");
+            if !#first do dyn_str.append(out, ", ");
 
-            string.append(out, c);
+            dyn_str.append(out, c);
         }
 
-        string.append(out, "\n{\n");
+        dyn_str.append(out, "\n{\n");
     } else {
-        string.append(out, " {\n");
+        dyn_str.append(out, " {\n");
     }
 
 
     for& member in s.members {
-        string.append(out, "    ");
-        string.append(out, member.name);
+        dyn_str.append(out, "    ");
+        dyn_str.append(out, member.name);
 
         if member.type {
             conv.format(out, ": {}", member.type);
         }
 
-        string.append(out, "\n");
+        dyn_str.append(out, "\n");
     }
 
-    string.append(out, "}");
-    string.append(out, "</code></pre>");
+    dyn_str.append(out, "}");
+    dyn_str.append(out, "</code></pre>");
 
-    string.append(out, "</div>");
+    dyn_str.append(out, "</div>");
 
     output_entity_description(s, out);
 
-    array.sort(s.methods, (x, y) => string.compare(x.name, y.name));
+    Array.sort(s.methods, (x, y) => str.compare(x.name, y.name));
     output_method_list(docs, s.methods, s.name, out);
 }
 
 output_enum_definition :: (docs: &doc.Doc, e: &doc.Doc_Enum, out: &dyn_str) {
-    string.append(out, "<div class=\"source-definition\">");
+    dyn_str.append(out, "<div class=\"source-definition\">");
     conv.format(out, "<pre class=\"hljs\"><code class=\"language-onyx\">");
 
     output_entity_name_link(docs, e, out);
     conv.format(out, " :: enum {}{\n", "#flags " if e.flags&.Is_Flags else "");
 
     for& value in e.values {
-        string.append(out, "    ");
-        string.append(out, value.name);
+        dyn_str.append(out, "    ");
+        dyn_str.append(out, value.name);
 
         conv.format(out, " :: {}\n", value.value);
     }
 
-    string.append(out, "}");
-    string.append(out, "</code></pre>");
+    dyn_str.append(out, "}");
+    dyn_str.append(out, "</code></pre>");
 
-    string.append(out, "</div>");
+    dyn_str.append(out, "</div>");
 
     output_entity_description(e, out);
 }
 
 output_distinct_definition :: (docs: &doc.Doc, d: &doc.Doc_Distinct_Type, out: &dyn_str) {
-    string.append(out, "<div class=\"source-definition\">");
+    dyn_str.append(out, "<div class=\"source-definition\">");
     conv.format(out, "<pre class=\"hljs\"><code class=\"language-onyx\">");
     output_entity_name_link(docs, d, out);
     conv.format(out, " :: #distinct {}", d.wrapped_type);
-    string.append(out, "</code></pre>");
+    dyn_str.append(out, "</code></pre>");
 
-    string.append(out, "</div>");
+    dyn_str.append(out, "</div>");
 
     output_entity_description(d, out);
 
-    array.sort(d.methods, (x, y) => string.compare(x.name, y.name));
+    Array.sort(d.methods, (x, y) => str.compare(x.name, y.name));
     output_method_list(docs, d.methods, d.name, out);
 }
 
 output_union_definition :: (docs: &doc.Doc, u: &doc.Doc_Union, out: &dyn_str) {
-    string.append(out, "<div class=\"source-definition\">");
+    dyn_str.append(out, "<div class=\"source-definition\">");
     conv.format(out, "<pre class=\"hljs\"><code class=\"language-onyx\">");
 
     output_entity_name_link(docs, u, out);
-    string.append(out, " :: union");
+    dyn_str.append(out, " :: union");
 
     if u.polymorph_arguments {
-        string.append(out, " (");
+        dyn_str.append(out, " (");
         for& p in u.polymorph_arguments {
-            if !#first do string.append(out, ", ");
+            if !#first do dyn_str.append(out, ", ");
 
             conv.format(out, "{}: {}", p.name, p.type);
         }
-        string.append(out, ")");
+        dyn_str.append(out, ")");
     }
 
     
     if u.constraints {
-        string.append(out, "\n    where ");
+        dyn_str.append(out, "\n    where ");
         for c in u.constraints {
-            if !#first do string.append(out, ", ");
+            if !#first do dyn_str.append(out, ", ");
 
-            string.append(out, c);
+            dyn_str.append(out, c);
         }
 
-        string.append(out, "\n{\n");
+        dyn_str.append(out, "\n{\n");
     } else {
-        string.append(out, " {\n");
+        dyn_str.append(out, " {\n");
     }
 
 
     for& variant in u.variants {
-        string.append(out, "    ");
-        string.append(out, variant.name);
-        string.append(out, ": ");
-        string.append(out, variant.type);
-        string.append(out, "\n");
+        dyn_str.append(out, "    ");
+        dyn_str.append(out, variant.name);
+        dyn_str.append(out, ": ");
+        dyn_str.append(out, variant.type);
+        dyn_str.append(out, "\n");
     }
 
-    string.append(out, "}");
-    string.append(out, "</code></pre>");
+    dyn_str.append(out, "}");
+    dyn_str.append(out, "</code></pre>");
 
-    string.append(out, "</div>");
+    dyn_str.append(out, "</div>");
 
     output_entity_description(u, out);
 
-    array.sort(u.methods, (x, y) => string.compare(x.name, y.name));
+    Array.sort(u.methods, (x, y) => str.compare(x.name, y.name));
     output_method_list(docs, u.methods, u.name, out);
 }
 
 output_method_list :: (docs: &doc.Doc, methods: [] doc.Doc_Procedure, name: str, out: &dyn_str) {
     if methods {
-        string.append(out, "<div class=\"method-header\">Methods</div>");
+        dyn_str.append(out, "<div class=\"method-header\">Methods</div>");
 
-        string.append(out, "<div>");
+        dyn_str.append(out, "<div>");
         for &method in methods {
             method.name = tprintf("{}.{}", name, method.name);
 
@@ -540,16 +537,16 @@ output_method_list :: (docs: &doc.Doc, methods: [] doc.Doc_Procedure, name: str,
                     it.name = method.name;
                     conv.format(out, "<div id=\"{}.{}\">", name, method.name);
                     output_procedure_definition(docs, it, out);
-                    string.append(out, "</div>");
+                    dyn_str.append(out, "</div>");
                 }
             } else {
                 conv.format(out, "<div id=\"{}\">", method.name);
                 output_procedure_definition(docs, method, out);
-                string.append(out, "</div>");
+                dyn_str.append(out, "</div>");
             }
-            string.append(out, "</div>");
+            dyn_str.append(out, "</div>");
         }
-        string.append(out, "</div>");
+        dyn_str.append(out, "</div>");
     }
 }
 
@@ -558,12 +555,12 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
     log(.Info, "Generating package sidebar.");
 
     output: dyn_str;
-    string.append(&output, "<div class=\"package-sidebar\">");
+    dyn_str.append(&output, "<div class=\"package-sidebar\">");
 
-    string.append(&output, "<h2>Packages</h2>");
+    dyn_str.append(&output, "<h2>Packages</h2>");
 
     sorted_packages := Slice.copy(docs.packages)
-                    |> Slice.sort((x, y) => string.compare(x.qualified_name, y.qualified_name));
+                    |> Slice.sort((x, y) => str.compare(x.qualified_name, y.qualified_name));
 
     for p in sorted_packages {
         if should_ignore_package(p.qualified_name) {
@@ -578,21 +575,21 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
             p.qualified_name);
     }
 
-    string.append(&output, "</div>");
+    dyn_str.append(&output, "</div>");
 
     return output;
     
-    /*tlp := iter.as_iter(docs.packages, by_pointer=true)
-            |> iter.filter(x => cast(i32, x.parent) == -1)
-            |> iter.to_array()
-            |> array.sort((x, y) => string.compare(x.name, y.name));
+    /*tlp := Iterator.from(docs.packages, by_pointer=true)
+            |> Iterator.filter(x => cast(i32, x.parent) == -1)
+            |> Iterator.to_Array.)
+            |> Array.sort((x, y) => str.compare(x.name, y.name));
     defer delete(&tlp);
 
     for p in tlp {
         recurse(docs, &output, p, active_package);
     }
 
-    string.append(&output, "</div>");
+    dyn_str.append(&output, "</div>");
 
     return output;
 
@@ -609,16 +606,16 @@ build_package_tree_sidebar :: (docs: &doc.Doc, active_package: doc.Doc_Package.I
             p.name);
 
         if p.subpackages {
-            string.append(dest, "<div class=\"container\">");
+            dyn_str.append(dest, "<div class=\"container\">");
 
-            array.sort(p.subpackages, (x, y) use (docs) => {
-                return string.compare(docs.packages[~~x].name, docs.packages[~~y].name);
+            Array.sort(p.subpackages, (x, y) use (docs) => {
+                return str.compare(docs.packages[~~x].name, docs.packages[~~y].name);
             });
 
             for p.subpackages {
                 recurse(docs, dest, &docs.packages[~~it], active_package);
             }
-            string.append(dest, "</div>");
+            dyn_str.append(dest, "</div>");
         }
     }*/
 }
@@ -631,15 +628,15 @@ SidebarSymbol :: struct {
 
 build_symbol_sidebar :: (symbols: Iterator(SidebarSymbol), output: &dyn_str) {
     return;
-    string.append(output, "<div class=\"symbol-sidebar\">");
-    string.append(output, "<h2>Symbols</h2>");
+    dyn_str.append(output, "<div class=\"symbol-sidebar\">");
+    dyn_str.append(output, "<h2>Symbols</h2>");
 
     for symbols {
         conv.format(output, "<a href=\"#{}\" style=\"position: relative; left: {}px\"><div class=\"symbol-link\">{}</div></a>",
             it.link_name, it.indent * 20 + 8, it.name);
     }
 
-    string.append(output, "</div>");
+    dyn_str.append(output, "</div>");
 }
 
 build_json_index_script_tag :: (docs: &doc.Doc) -> str {
@@ -650,7 +647,7 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
 
     output: dyn_str;
 
-    string.append(&output, """<script>
+    dyn_str.append(&output, """<script>
     window.PACKAGE_INDEX = [
 """);
 
@@ -664,42 +661,42 @@ build_json_index_script_tag :: (docs: &doc.Doc) -> str {
     }
 
     symbols := iter.concat(
-        iter.as_iter(docs.structures)->flat_map(x => iter.concat(
-            iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m) use (x) =>
+        Iterator.from(docs.structures)->flat_map(x => iter.concat(
+            Iterator.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
+            Iterator.from(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
-        iter.as_iter(docs.enumerations)->map(x => Index_Entry.{ .Enum, x.name, x.visibility, x.package_id }),
-        iter.as_iter(docs.unions)->flat_map(x => iter.concat(
-            iter.single(Index_Entry.{ .Union, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m) use (x) =>
+        Iterator.from(docs.enumerations)->map(x => Index_Entry.{ .Enum, x.name, x.visibility, x.package_id }),
+        Iterator.from(docs.unions)->flat_map(x => iter.concat(
+            Iterator.single(Index_Entry.{ .Union, x.name, x.visibility, x.package_id }),
+            Iterator.from(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
-        iter.as_iter(docs.distinct_types)->flat_map(x => iter.concat(
-            iter.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
-            iter.as_iter(x.methods)->map((m) use (x) =>
+        Iterator.from(docs.distinct_types)->flat_map(x => iter.concat(
+            Iterator.single(Index_Entry.{ .Struct, x.name, x.visibility, x.package_id }),
+            Iterator.from(x.methods)->map((m) use (x) =>
                 Index_Entry.{ .Method, m.name, x.visibility, x.package_id, x.name }
             )
         )),
-        iter.as_iter(docs.procedures)->map(x => Index_Entry.{ .Proc, x.name, x.visibility, x.package_id }))
+        Iterator.from(docs.procedures)->map(x => Index_Entry.{ .Proc, x.name, x.visibility, x.package_id }))
         ->filter(x => x.visibility == .Public);
 
     for sym in symbols {
         pack := docs.packages[sym.package_id];
         if should_ignore_package(pack.qualified_name) do continue;
 
-        string.append(&output, "{");
+        dyn_str.append(&output, "{");
         conv.format(&output,"\"type\":\"{}\",", sym.type);
         conv.format(&output,"\"package\":\"{}\",", pack.qualified_name);
 
         conv.format(&output,"\"name\":\"{}\",", sym.name);
 
-        string.append(&output, "},");
+        dyn_str.append(&output, "},");
     }
 
-    string.append(&output, "]; </script>");
+    dyn_str.append(&output, "]; </script>");
     
     cached = output;
     return output;
